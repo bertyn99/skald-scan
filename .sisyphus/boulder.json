@@ -1,0 +1,23 @@
+{
+  "active_plan": "/home/bertyn/project/yggdraz/skald-scan/.sisyphus/plans/skald-scan-v1.md",
+  "started_at": "2026-04-07T20:32:03.745Z",
+  "session_ids": [
+    "ses_2a04d33d6ffeBt63r9mvxlXJtU",
+    "ses_29659727dffeNeZYD4ax7gTv3i",
+    "ses_29659721fffeI7FLa3v6UDpwCO",
+    "ses_296542528ffeoby2xK7Vdxwnnk"
+  ],
+  "plan_name": "skald-scan-v1",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "**Monorepo + Alchemy IaC Init**",
+      "session_id": "ses_296542528ffeoby2xK7Vdxwnnk",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-07T20:56:59.610Z"
+    }
+  }
+}

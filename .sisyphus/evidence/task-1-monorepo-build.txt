@@ -1,0 +1,199 @@
+
+> skald-scan@ build /home/bertyn/project/yggdraz/skald-scan
+> turbo run build
+
+
+   • Packages in scope: @skald-scan/shared, dashboard, reader
+   • Running build in 3 packages
+   • Remote caching disabled
+
+@skald-scan/shared:build: cache hit, replaying logs dd8fb0284ad8f35e
+@skald-scan/shared:build: 
+@skald-scan/shared:build: > @skald-scan/shared@0.0.1 build /home/bertyn/project/yggdraz/skald-scan/packages/shared
+@skald-scan/shared:build: > tsc
+@skald-scan/shared:build: 
+dashboard:build: cache hit, replaying logs b79e3a25258608ea
+dashboard:build: 
+dashboard:build: > dashboard@ build /home/bertyn/project/yggdraz/skald-scan/apps/dashboard
+dashboard:build: > nuxt build
+dashboard:build: 
+dashboard:build: ┌  Building Nuxt for production...
+dashboard:build: │
+dashboard:build: ●  Nuxt 3.21.2 (with Nitro 2.13.3, Vite 7.3.2 and Vue 3.5.32)
+dashboard:build: ℹ Nuxt Icon server bundle mode is set to local
+dashboard:build: ✔ Nuxt Icon discovered local-installed 2 collections: lucide, simple-icons
+dashboard:build: │
+dashboard:build: ●  Nitro preset: node-server
+dashboard:build: ℹ Building client...
+dashboard:build: ℹ vite v7.3.2 building client environment for production...
+dashboard:build: ℹ transforming...
+dashboard:build: ℹ ✓ 142 modules transformed.
+dashboard:build: ℹ rendering chunks...
+dashboard:build: ℹ computing gzip size...
+dashboard:build: ℹ .nuxt/dist/client/manifest.json                   3.46 kB │ gzip:  0.54 kB
+dashboard:build: ℹ .nuxt/dist/client/_nuxt/error-500.CGy9q865.css    1.88 kB │ gzip:  0.72 kB
+dashboard:build: ℹ .nuxt/dist/client/_nuxt/error-404.DP_LXl2S.css    3.53 kB │ gzip:  1.09 kB
+dashboard:build: ℹ .nuxt/dist/client/_nuxt/entry.BdJpu6gU.css       12.40 kB │ gzip:  2.57 kB
+dashboard:build: ℹ .nuxt/dist/client/_nuxt/CWKZsFxo.js               3.37 kB │ gzip:  1.53 kB
+dashboard:build: ℹ .nuxt/dist/client/_nuxt/CVfp5W_c.js               7.70 kB │ gzip:  3.33 kB
+dashboard:build: ℹ .nuxt/dist/client/_nuxt/CkWpNIVY.js               9.48 kB │ gzip:  3.84 kB
+dashboard:build: ℹ .nuxt/dist/client/_nuxt/BJwWMAbn.js             257.63 kB │ gzip: 76.54 kB
+dashboard:build: ℹ ✓ built in 3.06s
+dashboard:build: ✔ Client built in 3096ms
+dashboard:build: ℹ Building server...
+dashboard:build: ℹ vite v7.3.2 building ssr environment for production...
+dashboard:build: ℹ transforming...
+dashboard:build: ℹ ✓ 76 modules transformed.
+dashboard:build: ℹ rendering chunks...
+dashboard:build: 
+dashboard:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help
+dashboard:build: 
+dashboard:build: 
+dashboard:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help (x2)
+dashboard:build: 
+dashboard:build: 
+dashboard:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help (x3)
+dashboard:build: 
+dashboard:build: 
+dashboard:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help (x4)
+reader:build: cache hit, replaying logs 336a95054fcfdc34
+dashboard:build: 
+dashboard:build: ℹ ✓ built in 1.23s
+dashboard:build: ✔ Server built in 1241ms
+dashboard:build: [nitro] ✔ Generated public .output/public
+dashboard:build: [nitro] ℹ Building Nuxt Nitro server (preset: node-server, compatibility date: 2025-01-15)
+dashboard:build: [nitro] ✔ Nuxt Nitro server built
+dashboard:build:   ├─ .output/server/chunks/_/error-500.mjs (4.9 kB) (2.06 kB gzip)
+reader:build: 
+reader:build: > reader@ build /home/bertyn/project/yggdraz/skald-scan/apps/reader
+dashboard:build:   ├─ .output/server/chunks/_/error-500.mjs.map (328 B) (245 B gzip)
+dashboard:build:   ├─ .output/server/chunks/_/icons.mjs (538 kB) (81.7 kB gzip)
+reader:build: > nuxt build
+reader:build: 
+reader:build: ┌  Building Nuxt for production...
+dashboard:build:   ├─ .output/server/chunks/_/icons.mjs.map (6.06 kB) (101 B gzip)
+reader:build: │
+reader:build: ●  Nuxt 3.21.2 (with Nitro 2.13.3, Vite 7.3.2 and Vue 3.5.32)
+dashboard:build:   ├─ .output/server/chunks/_/icons2.mjs (4.72 MB) (1.89 MB gzip)
+dashboard:build:   ├─ .output/server/chunks/_/icons2.mjs.map (11.5 kB) (110 B gzip)
+reader:build: ℹ Nuxt Icon server bundle mode is set to local
+reader:build: ✔ Nuxt Icon discovered local-installed 2 collections: lucide, simple-icons
+dashboard:build:   ├─ .output/server/chunks/build/client.precomputed.mjs (7.35 kB) (829 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/client.precomputed.mjs.map (3.35 kB) (397 B gzip)
+reader:build: │
+reader:build: ●  Nitro preset: node-server
+reader:build: ℹ Building client...
+dashboard:build:   ├─ .output/server/chunks/build/entry-styles-3.mjs-DUnIDzYO.mjs (12.7 kB) (2.67 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/entry-styles-3.mjs-DUnIDzYO.mjs.map (185 B) (154 B gzip)
+reader:build: ℹ vite v7.3.2 building client environment for production...
+reader:build: ℹ transforming...
+reader:build: ℹ ✓ 142 modules transformed.
+dashboard:build:   ├─ .output/server/chunks/build/entry-styles.BpD8TOgT.mjs (4.6 kB) (1.6 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/entry-styles.BpD8TOgT.mjs.map (438 B) (241 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/error-404-styles.CreKSVpS.mjs (3.81 kB) (1.22 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/error-404-styles.CreKSVpS.mjs.map (300 B) (198 B gzip)
+reader:build: ℹ rendering chunks...
+reader:build: ℹ computing gzip size...
+reader:build: ℹ .nuxt/dist/client/manifest.json                   3.46 kB │ gzip:  0.54 kB
+dashboard:build:   ├─ .output/server/chunks/build/error-404-zTT3DX_a.mjs (15.7 kB) (4.74 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/error-404-zTT3DX_a.mjs.map (11.2 kB) (2.63 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/error-500-BWo9ZpIQ.mjs (4.94 kB) (2.06 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/error-500-BWo9ZpIQ.mjs.map (1.62 kB) (562 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/error-500-styles.Cu3F9oUW.mjs (2.16 kB) (858 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/error-500-styles.Cu3F9oUW.mjs.map (300 B) (197 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/index-BRMKWbfP.mjs (20.7 kB) (5.3 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/index-BRMKWbfP.mjs.map (21.9 kB) (4.78 kB gzip)
+reader:build: ℹ .nuxt/dist/client/_nuxt/error-500.CiXnHKGW.css    1.88 kB │ gzip:  0.72 kB
+reader:build: ℹ .nuxt/dist/client/_nuxt/error-404.2lnMLWZs.css    3.53 kB │ gzip:  1.09 kB
+reader:build: ℹ .nuxt/dist/client/_nuxt/entry.UcAMWRYG.css       12.40 kB │ gzip:  2.57 kB
+reader:build: ℹ .nuxt/dist/client/_nuxt/D5-sUcwq.js               3.37 kB │ gzip:  1.53 kB
+reader:build: ℹ .nuxt/dist/client/_nuxt/CHPUCjGx.js               7.70 kB │ gzip:  3.33 kB
+dashboard:build:   ├─ .output/server/chunks/build/server.mjs (130 kB) (25.1 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/build/server.mjs.map (38.7 kB) (6.58 kB gzip)
+reader:build: ℹ .nuxt/dist/client/_nuxt/Bvr_yi0h.js               9.48 kB │ gzip:  3.84 kB
+reader:build: ℹ .nuxt/dist/client/_nuxt/B4rBIPEI.js             257.63 kB │ gzip: 76.52 kB
+reader:build: ℹ ✓ built in 3.22s
+dashboard:build:   ├─ .output/server/chunks/build/styles.mjs (2.16 kB) (447 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/styles.mjs.map (677 B) (241 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/welcome-styles.CZ6OB_Yy.mjs (309 B) (205 B gzip)
+dashboard:build:   ├─ .output/server/chunks/build/welcome-styles.CZ6OB_Yy.mjs.map (194 B) (156 B gzip)
+dashboard:build:   ├─ .output/server/chunks/nitro/nitro.mjs (173 kB) (43.9 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/nitro/nitro.mjs.map (7.5 kB) (1.23 kB gzip)
+dashboard:build:   ├─ .output/server/chunks/routes/renderer.mjs (16.4 kB) (5.4 kB gzip)
+reader:build: ✔ Client built in 3246ms
+reader:build: ℹ Building server...
+reader:build: ℹ vite v7.3.2 building ssr environment for production...
+dashboard:build:   ├─ .output/server/chunks/routes/renderer.mjs.map (1.72 kB) (396 B gzip)
+dashboard:build:   ├─ .output/server/chunks/virtual/_virtual_spa-template.mjs (94 B) (100 B gzip)
+dashboard:build:   ├─ .output/server/chunks/virtual/_virtual_spa-template.mjs.map (90 B) (98 B gzip)
+reader:build: ℹ transforming...
+reader:build: ℹ ✓ 76 modules transformed.
+reader:build: ℹ rendering chunks...
+reader:build: 
+dashboard:build:   ├─ .output/server/index.mjs (396 B) (226 B gzip)
+dashboard:build:   └─ .output/server/package.json (898 B) (388 B gzip)
+dashboard:build: Σ Total size: 7.6 MB (2.55 MB gzip)
+dashboard:build: [nitro] ✔ You can preview this build using node .output/server/index.mjs
+dashboard:build: │
+dashboard:build: └  ✨ Build complete!
+reader:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help
+reader:build: 
+reader:build: 
+reader:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help (x2)
+reader:build: 
+reader:build: 
+reader:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help (x3)
+reader:build: 
+reader:build: 
+reader:build:  WARN  [plugin @tailwindcss/vite:generate:build] Sourcemap is likely to be incorrect: a plugin (@tailwindcss/vite:generate:build) was used to transform files, but didn't generate a sourcemap for the transformation. Consult the plugin documentation for help (x4)
+reader:build: 
+reader:build: ℹ ✓ built in 1.25s
+reader:build: ✔ Server built in 1274ms
+reader:build: [nitro] ✔ Generated public .output/public
+reader:build: [nitro] ℹ Building Nuxt Nitro server (preset: node-server, compatibility date: 2025-01-15)
+reader:build: [nitro] ✔ Nuxt Nitro server built
+reader:build:   ├─ .output/server/chunks/_/error-500.mjs (4.9 kB) (2.06 kB gzip)
+reader:build:   ├─ .output/server/chunks/_/error-500.mjs.map (328 B) (245 B gzip)
+reader:build:   ├─ .output/server/chunks/_/icons.mjs (538 kB) (81.7 kB gzip)
+reader:build:   ├─ .output/server/chunks/_/icons.mjs.map (6.06 kB) (101 B gzip)
+reader:build:   ├─ .output/server/chunks/_/icons2.mjs (4.72 MB) (1.89 MB gzip)
+reader:build:   ├─ .output/server/chunks/_/icons2.mjs.map (11.5 kB) (110 B gzip)
+reader:build:   ├─ .output/server/chunks/build/client.precomputed.mjs (7.35 kB) (828 B gzip)
+reader:build:   ├─ .output/server/chunks/build/client.precomputed.mjs.map (3.35 kB) (397 B gzip)
+reader:build:   ├─ .output/server/chunks/build/entry-styles-3.mjs-DlEU10zC.mjs (12.7 kB) (2.66 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/entry-styles-3.mjs-DlEU10zC.mjs.map (185 B) (152 B gzip)
+reader:build:   ├─ .output/server/chunks/build/entry-styles.BGQOYa3c.mjs (4.59 kB) (1.6 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/entry-styles.BGQOYa3c.mjs.map (438 B) (239 B gzip)
+reader:build:   ├─ .output/server/chunks/build/error-404-BRAmiMiR.mjs (15.7 kB) (4.74 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/error-404-BRAmiMiR.mjs.map (11.2 kB) (2.63 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/error-404-styles.CqNM7-er.mjs (3.8 kB) (1.22 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/error-404-styles.CqNM7-er.mjs.map (300 B) (200 B gzip)
+reader:build:   ├─ .output/server/chunks/build/error-500-nPlbaE2K.mjs (4.94 kB) (2.06 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/error-500-nPlbaE2K.mjs.map (1.62 kB) (562 B gzip)
+reader:build:   ├─ .output/server/chunks/build/error-500-styles.6qu-yrd3.mjs (2.15 kB) (861 B gzip)
+reader:build:   ├─ .output/server/chunks/build/error-500-styles.6qu-yrd3.mjs.map (300 B) (197 B gzip)
+reader:build:   ├─ .output/server/chunks/build/index-BRMKWbfP.mjs (20.7 kB) (5.3 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/index-BRMKWbfP.mjs.map (21.9 kB) (4.78 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/server.mjs (130 kB) (25.1 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/server.mjs.map (38.7 kB) (6.58 kB gzip)
+reader:build:   ├─ .output/server/chunks/build/styles.mjs (2.16 kB) (446 B gzip)
+reader:build:   ├─ .output/server/chunks/build/styles.mjs.map (677 B) (241 B gzip)
+reader:build:   ├─ .output/server/chunks/build/welcome-styles.Bw7HpkV1.mjs (309 B) (204 B gzip)
+reader:build:   ├─ .output/server/chunks/build/welcome-styles.Bw7HpkV1.mjs.map (194 B) (157 B gzip)
+reader:build:   ├─ .output/server/chunks/nitro/nitro.mjs (173 kB) (43.9 kB gzip)
+reader:build:   ├─ .output/server/chunks/nitro/nitro.mjs.map (7.5 kB) (1.23 kB gzip)
+reader:build:   ├─ .output/server/chunks/routes/renderer.mjs (16.4 kB) (5.4 kB gzip)
+reader:build:   ├─ .output/server/chunks/routes/renderer.mjs.map (1.72 kB) (396 B gzip)
+reader:build:   ├─ .output/server/chunks/virtual/_virtual_spa-template.mjs (94 B) (100 B gzip)
+reader:build:   ├─ .output/server/chunks/virtual/_virtual_spa-template.mjs.map (90 B) (98 B gzip)
+reader:build:   ├─ .output/server/index.mjs (396 B) (226 B gzip)
+reader:build:   └─ .output/server/package.json (895 B) (384 B gzip)
+reader:build: Σ Total size: 7.6 MB (2.55 MB gzip)
+reader:build: [nitro] ✔ You can preview this build using node .output/server/index.mjs
+reader:build: │
+reader:build: └  ✨ Build complete!
+
+ Tasks:    3 successful, 3 total
+Cached:    3 cached, 3 total
+  Time:    93ms >>> FULL TURBO
+
