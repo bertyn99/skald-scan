@@ -67,3 +67,15 @@ skald-scan/
 ├── package.json      (root workspace)
 └── pnpm-workspace.yaml
 ```
+
+## Reader Setup / Nuxt UI v3
+- Nuxt UI v3 uses Tailwind v4 internally and doesn't require a separate `tailwind.config`.
+- `@nuxt/test-utils` and `happy-dom` in a Nuxt turborepo context might have dependency conflicts with `bun:test` and tsconfig. Using pure vitest without nuxt test environments for API proxies is much simpler and more stable.
+- BFF Proxies in Nuxt using `h3` (`defineEventHandler`, `fetch`, `setResponseHeaders`) provides an easy way to decouple API origins.
+
+## T3 Implementation — Dashboard Better Auth Scaffold
+- Better Auth + Cloudflare D1 works in Nuxt Nitro when the auth instance is created per-request from `event.context.cloudflare?.env.DB`; fallback to `memoryAdapter` keeps Vitest node tests deterministic without Cloudflare bindings.
+- Existing shared Drizzle tables can be reused by mapping Better Auth models via adapter schema + modelName/field mapping (`user -> users`, `session -> sessions`, `image -> image_url`, `ipAddress/userAgent -> snake_case`).
+- For Nuxt server routes, convert H3 events with `toWebRequest(event)` and return Better Auth responses with `sendWebResponse(event, response)` in catch-all `/server/api/auth/[...].ts`.
+- Middleware can safely skip auth routes with `event.path.startsWith(/api/auth)` and attach `event.context.auth` + `event.context.authSession`; in tests, guard `getRequestHeaders` behind `event.node?.req`.
+- Dashboard Vitest in monorepo needs local `apps/dashboard/tsconfig.json` extending `./.nuxt/tsconfig.json` to avoid accidental root `tsconfig` references during test transforms.

@@ -334,7 +334,7 @@ Max Concurrent: 4 (Waves 5 and 6)
   - Files: `packages/shared/src/schema.ts`, `packages/shared/src/types.ts`, `packages/shared/src/constants.ts`, `packages/shared/drizzle.config.ts`
   - Pre-commit: `cd packages/shared && bun test`
 
-- [ ] 3. **Dashboard App Scaffold + Better Auth**
+- [x] 3. **Dashboard App Scaffold + Better Auth**
 
   **What to do**:
   - Scaffold `apps/dashboard` as Nuxt 3 app
@@ -397,7 +397,7 @@ Max Concurrent: 4 (Waves 5 and 6)
   - Files: `apps/dashboard/nuxt.config.ts`, `apps/dashboard/server/api/auth/[...].ts`, `apps/dashboard/alchemy.run.ts`, `apps/dashboard/server/middleware/auth.ts`
   - Pre-commit: `cd apps/dashboard && bun test`
 
-- [ ] 4. **Reader App Scaffold + Nuxt UI**
+- [x] 4. **Reader App Scaffold + Nuxt UI**
 
   **What to do**:
   - Scaffold `apps/reader` as Nuxt 3 app

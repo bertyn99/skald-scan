@@ -7,6 +7,7 @@
     "dev": "nuxt dev --port 3000",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
     "deploy": "alchemy run --app dashboard",
@@ -17,6 +18,8 @@
     "@iconify-json/simple-icons": "^1.2.75",
     "@nuxt/ui": "^3.2.0",
     "@skald-scan/shared": "workspace:*",
+    "better-auth": "1.4.16",
+    "drizzle-orm": "0.45.1",
     "nuxt": "^3.17.5",
     "tailwindcss": "^4.2.2"
   },
@@ -25,6 +28,7 @@
     "alchemy": "latest",
     "eslint": "^10.1.0",
     "typescript": "^5.8.3",
+    "vitest": "3.2.4",
     "vue-tsc": "^3.2.6"
   }
 }

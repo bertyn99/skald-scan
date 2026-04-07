@@ -1,5 +1,7 @@
 <template>
-  <div>
-    <h1>Skald Scan Reader</h1>
-  </div>
+  <UApp>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+  </UApp>
 </template>
