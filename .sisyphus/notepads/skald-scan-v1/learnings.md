@@ -42,6 +42,11 @@
 
 ### Directory Structure Created
 ```
+
+## T2 Implementation — Shared Drizzle Schema
+- Drizzle D1 date defaults with `integer(..., { mode: 'timestamp_ms' })` expect `Date` return types; using numeric unix-ms defaults via `Date.now()` is safest with plain `integer(...)` for this schema.
+- Drizzle `sqliteTable` third param array syntax (`(table) => [index(...)]`) works cleanly for explicit index assertions via `getTableConfig(table).indexes` in Vitest.
+- FTS5 virtual tables/triggers are best carried as explicit SQL statements (`mangaFtsSql`) and validated in tests, since Drizzle schema DSL does not model SQLite FTS virtual tables directly.
 skald-scan/
 ├── apps/
 │   ├── dashboard/    (admin dashboard, port 3000)

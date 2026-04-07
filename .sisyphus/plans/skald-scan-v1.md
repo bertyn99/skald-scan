@@ -272,7 +272,7 @@ Max Concurrent: 4 (Waves 5 and 6)
   - Files: `pnpm-workspace.yaml`, `turbo.json`, `package.json`, `alchemy.run.ts`, `apps/dashboard/`, `apps/reader/`, `packages/shared/`
   - Pre-commit: `pnpm install && pnpm turbo run build`
 
-- [ ] 2. **Shared Package — Drizzle Schema + Types**
+- [x] 2. **Shared Package — Drizzle Schema + Types**
 
   **What to do**:
   - Setup Drizzle ORM in `packages/shared` with D1 adapter

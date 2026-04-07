@@ -10,9 +10,17 @@
   },
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate": "drizzle-kit generate"
   },
   "devDependencies": {
-    "typescript": "^5.8.3"
+    "drizzle-kit": "0.31.8",
+    "typescript": "^5.8.3",
+    "vitest": "3.2.4"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.1"
   }
 }
