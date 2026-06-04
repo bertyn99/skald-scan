@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { count, sql } from 'drizzle-orm'
 import { defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent } from '../../utils/storage'
+import { getDatabaseFromEvent } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   const database = getDatabaseFromEvent(event)

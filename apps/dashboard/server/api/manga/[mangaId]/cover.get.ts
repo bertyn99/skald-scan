@@ -8,8 +8,8 @@ import {
   getDatabaseFromEvent,
   getStorageFromEvent,
   readEventParam
-} from '../../../../utils/storage'
-import { buildResizeOptions, buildVariantR2Key, imageResponseHeaders } from '../../../../utils/image-optimization'
+} from '../../../utils/storage'
+import { buildResizeOptions, buildVariantR2Key, imageResponseHeaders } from '../../../utils/image-optimization'
 
 export default defineEventHandler(async (event) => {
   const mangaId = readEventParam(event, 'mangaId')

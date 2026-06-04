@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventBody, readEventParam, requireAuthenticatedSession } from '../../../../../utils/storage'
+import { getDatabaseFromEvent, readEventBody, readEventParam, requireAuthenticatedSession } from '../../../../utils/storage'
 
 type RoleBody = {
   role?: string

@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventParam, requireAuthenticatedSession } from '../../../utils/storage'
+import { getDatabaseFromEvent, readEventParam, requireAuthenticatedSession } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAuthenticatedSession(event)

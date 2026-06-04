@@ -1,4 +1,4 @@
-import { handleScheduledSync } from '../services/scheduled-sync'
+import { handleScheduledSync } from '../../services/scheduled-sync'
 
 export default defineEventHandler(async (event) => {
   const env = event.context.cloudflare?.env

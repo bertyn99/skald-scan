@@ -1,12 +1,13 @@
 import { pages } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq, and, asc } from 'drizzle-orm'
-import { createError, defineEventHandler, readEventParam, setHeader } from 'h3'
+import { createError, defineEventHandler, setHeader } from 'h3'
 
 import {
   buildPageR2Key,
   getDatabaseFromEvent,
   getStorageFromEvent,
+  readEventParam
 } from '../../../../../utils/storage'
 
 export default defineEventHandler(async (event) => {

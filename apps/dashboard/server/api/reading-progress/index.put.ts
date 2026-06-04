@@ -10,7 +10,7 @@ import {
   readEventBody,
   readEventParam,
   requireAuthenticatedSession
-} from '../utils/storage'
+} from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAuthenticatedSession(event)
