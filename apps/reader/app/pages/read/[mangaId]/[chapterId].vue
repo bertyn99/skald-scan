@@ -1,5 +1,6 @@
 <template>
   <div class="fixed inset-0 bg-black z-50 flex flex-col">
+    <ReaderOfflineBanner />
     <!-- Top overlay: controls -->
     <div
       class="absolute top-0 left-0 right-0 z-10 transition-opacity duration-300"
@@ -16,7 +17,10 @@
           <p class="font-medium">{{ chapterTitle }}</p>
           <p class="text-white/60 text-xs">Ch. {{ chapterNumber }}</p>
         </div>
-        <UButton variant="ghost" color="white" icon="i-lucide-settings" />
+        <div class="flex items-center gap-1">
+          <ReaderDownloadButton :manga-id="mangaId" :chapter-id="chapterId" />
+          <UButton variant="ghost" color="white" icon="i-lucide-settings" />
+        </div>
       </div>
     </div>
 
