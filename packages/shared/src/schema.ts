@@ -6,6 +6,7 @@ import {
   real,
   sqliteTable,
   text,
+  uniqueIndex,
 } from 'drizzle-orm/sqlite-core'
 
 import { ChapterStatus, Language, MangaStatus, SyncStatus, UserRole } from './constants'
@@ -46,6 +47,8 @@ export const manga = sqliteTable(
     tags: text('tags'),
     createdAt: integer('created_at'),
     updatedAt: integer('updated_at'),
+    uploadedBy: text('uploaded_by'),
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
   },
   (table) => [
     index('manga_status_idx').on(table.status),
@@ -60,7 +63,7 @@ export const chapters = sqliteTable(
     id: text('id').primaryKey(),
     mangaId: text('manga_id')
       .notNull()
-      .references(() => manga.id),
+      .references(() => manga.id, { onDelete: 'cascade' }),
     title: text('title'),
     chapterNumber: real('chapter_number').notNull(),
     language: text('language').default(Language.En),
@@ -83,7 +86,7 @@ export const pages = sqliteTable(
     id: text('id').primaryKey(),
     chapterId: text('chapter_id')
       .notNull()
-      .references(() => chapters.id),
+      .references(() => chapters.id, { onDelete: 'cascade' }),
     pageNumber: integer('page_number').notNull(),
     imageUrl: text('image_url').notNull(),
     width: integer('width'),
@@ -107,10 +110,10 @@ export const readingProgress = sqliteTable(
       .references(() => users.id),
     mangaId: text('manga_id')
       .notNull()
-      .references(() => manga.id),
+      .references(() => manga.id, { onDelete: 'cascade' }),
     chapterId: text('chapter_id')
       .notNull()
-      .references(() => chapters.id),
+      .references(() => chapters.id, { onDelete: 'cascade' }),
     lastPageRead: integer('last_page_read').default(0),
     read: integer('read', { mode: 'boolean' }).notNull().default(false),
     progressPercent: real('progress_percent').default(0),
@@ -120,7 +123,7 @@ export const readingProgress = sqliteTable(
   },
   (table) => [
     index('reading_progress_user_manga_idx').on(table.userId, table.mangaId),
-    index('reading_progress_user_chapter_idx').on(table.userId, table.chapterId),
+    uniqueIndex('reading_progress_user_chapter_idx').on(table.userId, table.chapterId),
   ],
 )
 
@@ -141,10 +144,10 @@ export const collectionManga = sqliteTable(
   {
     collectionId: text('collection_id')
       .notNull()
-      .references(() => collections.id),
+      .references(() => collections.id, { onDelete: 'cascade' }),
     mangaId: text('manga_id')
       .notNull()
-      .references(() => manga.id),
+      .references(() => manga.id, { onDelete: 'cascade' }),
     addedAt: integer('added_at'),
   },
   (table) => [primaryKey({ columns: [table.collectionId, table.mangaId] })],
@@ -156,7 +159,8 @@ export const mangaDexSync = sqliteTable(
     id: text('id').primaryKey(),
     mangaId: text('manga_id')
       .notNull()
-      .references(() => manga.id),
+      .unique()
+      .references(() => manga.id, { onDelete: 'cascade' }),
     lastSyncedAt: integer('last_synced_at'),
     syncStatus: text('sync_status').default(SyncStatus.Idle),
     autoSyncEnabled: integer('auto_sync_enabled', { mode: 'boolean' }).default(true),
@@ -170,6 +174,13 @@ export const mangaDexSync = sqliteTable(
     index('manga_dex_sync_auto_sync_enabled_idx').on(table.autoSyncEnabled),
   ],
 )
+
+export const processedJobs = sqliteTable('processed_jobs', {
+  jobId: text('job_id').primaryKey(),
+  processedAt: integer('processed_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  status: text('status', { enum: ['processing', 'completed', 'failed'] }).notNull(),
+  metadata: text('metadata'), // JSON string
+});
 
 export const mangaFtsSql = [
   `CREATE VIRTUAL TABLE IF NOT EXISTS manga_fts USING fts5(title, description, content='manga', content_rowid='rowid');`,
