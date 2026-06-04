@@ -17,7 +17,8 @@
   "devDependencies": {
     "alchemy": "latest",
     "turbo": "^2.5.6",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "unstorage": "^1.17.5"
   },
   "packageManager": "pnpm@10.33.0",
   "pnpm": {
