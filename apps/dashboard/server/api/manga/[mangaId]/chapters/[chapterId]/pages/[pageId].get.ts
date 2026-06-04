@@ -1,7 +1,7 @@
 import { pages } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq, and } from 'drizzle-orm'
-import { createError, defineEventHandler } from 'h3'
+import { createError, defineEventHandler, getQuery } from 'h3'
 
 import {
   buildPageR2Key,
@@ -9,6 +9,7 @@ import {
   getStorageFromEvent,
   readEventParam
 } from '../../../../../../utils/storage'
+import { buildResizeOptions, buildVariantR2Key, imageResponseHeaders } from '../../../../../../utils/image-optimization'
 
 export default defineEventHandler(async (event) => {
   const mangaId = readEventParam(event, 'mangaId')
@@ -36,10 +37,29 @@ export default defineEventHandler(async (event) => {
 
   const storage = getStorageFromEvent(event)
   const pageKey = pageRecord?.r2Key ?? buildPageR2Key(mangaId, chapterId, pageNumber)
-  const object = await storage.get(pageKey)
 
+  const query = getQuery(event)
+  const resizeOpts = buildResizeOptions(query.w)
+
+  if (resizeOpts) {
+    const variantKey = buildVariantR2Key(pageKey, resizeOpts.width!)
+    const variant = await storage.get(variantKey)
+    if (variant?.body) {
+      return new Response(variant.body, { status: 200, headers: imageResponseHeaders() })
+    }
+  }
+
+  const object = await storage.get(pageKey)
   if (!object?.body) {
     throw createError({ statusCode: 404, statusMessage: 'Page image not found' })
+  }
+
+  if (resizeOpts) {
+    const arrayBuf = await new Response(object.body).arrayBuffer()
+    await storage.put(buildVariantR2Key(pageKey, resizeOpts.width!), arrayBuf, {
+      httpMetadata: { contentType: 'image/webp' },
+    })
+    return new Response(arrayBuf, { status: 200, headers: imageResponseHeaders() })
   }
 
   return new Response(object.body, {
@@ -47,7 +67,7 @@ export default defineEventHandler(async (event) => {
     headers: {
       'Content-Type': object.httpMetadata?.contentType || 'image/webp',
       'Cache-Control': 'public, max-age=31536000, immutable',
-      ...(object.httpEtag ? { ETag: object.httpEtag } : {})
-    }
+      ...(object.httpEtag ? { ETag: object.httpEtag } : {}),
+    },
   })
 })
