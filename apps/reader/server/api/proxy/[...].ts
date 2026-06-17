@@ -13,8 +13,7 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig()
   const dashboardUrl = config.public.dashboardUrl
-  const url = event.node.req.url || ''
-  const path = url.replace(/^\/api\/proxy/, '')
+  const path = (event.path || '').replace(/^\/api\/proxy/, '')
   const target = new URL(path, dashboardUrl).toString()
 
   const method = getMethod(event)

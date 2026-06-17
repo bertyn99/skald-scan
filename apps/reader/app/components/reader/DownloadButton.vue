@@ -1,7 +1,8 @@
 <template>
   <UButton
     variant="ghost"
-    color="white"
+    color="neutral"
+    class="text-white hover:bg-white/10"
     icon="i-lucide-download"
     size="sm"
     :loading="downloading"

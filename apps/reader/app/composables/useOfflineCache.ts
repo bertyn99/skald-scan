@@ -42,7 +42,7 @@ export function useOfflineCache() {
 
       for (const key of keys) {
         const match = key.url.match(/\/chapters\/([^/]+)\/pages\//)
-        if (match) chapterIds.add(match[1])
+        if (match?.[1]) chapterIds.add(match[1])
       }
 
       cachedChapters.value = chapterIds

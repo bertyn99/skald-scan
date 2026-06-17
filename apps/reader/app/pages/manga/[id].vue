@@ -14,7 +14,7 @@
     <div v-else-if="error" class="text-center py-16 text-muted-foreground">
       <UIcon name="i-lucide-alert-circle" class="w-12 h-12 mx-auto mb-4 text-error" />
       <p>Failed to load manga.</p>
-      <UButton variant="outline" class="mt-4" @click="refresh">Retry</UButton>
+      <UButton variant="outline" class="mt-4" @click="() => refresh()">Retry</UButton>
     </div>
 
     <template v-else-if="mangaData">
@@ -93,7 +93,7 @@
             </div>
             <div class="flex items-center gap-3">
               <span class="text-xs text-muted-foreground">{{ chapter.pagesCount }} pages</span>
-              <UBadge :color="chapter.status === 'ready' ? 'success' : 'neutral'" variant="subtle" size="xs">
+              <UBadge :color="chapter.status === ChapterStatus.Available ? 'success' : 'neutral'" variant="subtle" size="xs">
                 {{ chapter.language.toUpperCase() }}
               </UBadge>
             </div>
@@ -106,6 +106,7 @@
 
 <script setup lang="ts">
 import type { MangaFull, ChapterSummary } from '@skald-scan/shared'
+import { ChapterStatus } from '@skald-scan/shared'
 
 const route = useRoute()
 const mangaId = route.params.id as string

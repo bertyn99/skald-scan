@@ -9,7 +9,8 @@
       <div class="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/80 to-transparent">
         <UButton
           variant="ghost"
-          color="white"
+          color="neutral"
+          class="text-white hover:bg-white/10"
           icon="i-lucide-arrow-left"
           @click="navigateTo(`/manga/${mangaId}`)"
         />
@@ -19,7 +20,7 @@
         </div>
         <div class="flex items-center gap-1">
           <ReaderDownloadButton :manga-id="mangaId" :chapter-id="chapterId" />
-          <UButton variant="ghost" color="white" icon="i-lucide-settings" />
+          <UButton variant="ghost" color="neutral" class="text-white hover:bg-white/10" icon="i-lucide-settings" />
         </div>
       </div>
     </div>
@@ -33,7 +34,8 @@
         <UButton
           v-if="prevChapterId"
           variant="ghost"
-          color="white"
+          color="neutral"
+          class="text-white hover:bg-white/10"
           icon="i-lucide-chevron-left"
           @click="navigateTo(`/read/${mangaId}/${prevChapterId}`)"
         >
@@ -48,7 +50,8 @@
         <UButton
           v-if="nextChapterId"
           variant="ghost"
-          color="white"
+          color="neutral"
+          class="text-white hover:bg-white/10"
           trailing
           icon="i-lucide-chevron-right"
           @click="navigateTo(`/read/${mangaId}/${nextChapterId}`)"
@@ -85,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ChapterSummary } from '@skald-scan/shared'
+import type { MangaFull, ChapterSummary } from '@skald-scan/shared'
 
 definePageMeta({ layout: false })
 
@@ -115,30 +118,24 @@ watch(showOverlay, (v) => {
   if (v) autoHideOverlay()
 })
 
-interface ChapterDetail {
-  id: string
-  title: string
-  chapterNumber: number
-  pagesCount: number
-  language: string
-  status: string
-}
-
-const { data: chapters, pending, error } = await useFetch<ChapterSummary[]>(`/api/proxy/manga/${mangaId}`)
+const { data: response } = await useFetch<{ manga: MangaFull; chapters: ChapterSummary[] }>(`/api/proxy/manga/${mangaId}`)
 
 // Wait for chapter data, then find current chapter and set state
 watchEffect(() => {
-  if (!chapters.value) return
-  const sorted = [...chapters.value].sort((a, b) => a.chapterNumber - b.chapterNumber)
+  const chapters = response.value?.chapters
+  if (!chapters) return
+  const sorted = [...chapters].sort((a, b) => a.chapterNumber - b.chapterNumber)
   const idx = sorted.findIndex(c => c.id === chapterId)
   if (idx === -1) return
 
   const chapter = sorted[idx]
+  if (!chapter) return
+
   chapterNumber.value = chapter.chapterNumber
   chapterTitle.value = chapter.title
   totalPages.value = chapter.pagesCount
-  prevChapterId.value = idx > 0 ? sorted[idx - 1].id : null
-  nextChapterId.value = idx < sorted.length - 1 ? sorted[idx + 1].id : null
+  prevChapterId.value = idx > 0 ? sorted[idx - 1]?.id ?? null : null
+  nextChapterId.value = idx < sorted.length - 1 ? sorted[idx + 1]?.id ?? null : null
 })
 
 function pageUrl(page: number): string {
