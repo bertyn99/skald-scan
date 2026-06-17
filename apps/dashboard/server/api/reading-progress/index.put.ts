@@ -1,6 +1,6 @@
 import { readingProgress } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
 import type { UpsertProgressRequest } from '@skald-scan/shared'
@@ -14,7 +14,7 @@ import {
 
 export default defineEventHandler(async (event) => {
   requireAuthenticatedSession(event)
-
+  const userId = event.context.authSession!.user!.id
   const body = await readEventBody<UpsertProgressRequest>(event)
   const { mangaId, chapterId, lastPageRead, read } = body
 
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   const existing = await db.select({ id: readingProgress.id })
     .from(readingProgress)
-    .where(eq(readingProgress.chapterId, chapterId))
+    .where(and(eq(readingProgress.userId, userId), eq(readingProgress.chapterId, chapterId)))
     .get()
 
   if (existing) {
@@ -44,8 +44,8 @@ export default defineEventHandler(async (event) => {
   } else {
     await db.insert(readingProgress)
       .values({
+        userId,
         id: crypto.randomUUID(),
-        userId: 'system',
         mangaId,
         chapterId,
         lastPageRead,

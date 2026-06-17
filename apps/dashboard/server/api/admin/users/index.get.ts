@@ -3,9 +3,11 @@ import { drizzle } from 'drizzle-orm/d1'
 import { count, desc } from 'drizzle-orm'
 import { defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent } from '../../../utils/storage'
+import { getDatabaseFromEvent, requireAdminRole } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
+  requireAdminRole(event)
+
   const database = getDatabaseFromEvent(event)
   const db = drizzle(database)
 

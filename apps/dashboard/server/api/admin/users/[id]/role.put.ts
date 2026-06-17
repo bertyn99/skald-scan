@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventBody, readEventParam, requireAuthenticatedSession } from '../../../../utils/storage'
+import { getDatabaseFromEvent, readEventBody, readEventParam, requireAdminRole } from '../../../../utils/storage'
 
 type RoleBody = {
   role?: string
@@ -12,7 +12,7 @@ type RoleBody = {
 const VALID_ROLES = ['admin', 'reader']
 
 export default defineEventHandler(async (event) => {
-  requireAuthenticatedSession(event)
+  requireAdminRole(event)
 
   const userId = readEventParam(event, 'id')
   if (!userId) {

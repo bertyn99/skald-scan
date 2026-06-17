@@ -166,6 +166,14 @@ export const requireAuthenticatedSession = (event: H3Event): void => {
   }
 }
 
+export const requireAdminRole = (event: H3Event): void => {
+  requireAuthenticatedSession(event)
+  const role = event.context.authSession?.user?.role
+  if (role !== 'admin') {
+    throw createError({ statusCode: 403, statusMessage: 'Admin access required' })
+  }
+}
+
 export const readEventBody = async <T>(event: H3Event): Promise<T> => {
   const maybeBody = (event.context as H3Event['context'] & { body?: T }).body
 

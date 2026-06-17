@@ -1,6 +1,16 @@
 import { defineEventHandler, getMethod, getHeaders, readRawBody, setResponseHeaders, setResponseHeader } from 'h3'
 
 export default defineEventHandler(async (event) => {
+  setResponseHeaders(event, {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  })
+
+  if (getMethod(event) === 'OPTIONS') {
+    return null
+  }
+
   const config = useRuntimeConfig()
   const dashboardUrl = config.public.dashboardUrl
   const url = event.node.req.url || ''
@@ -8,28 +18,23 @@ export default defineEventHandler(async (event) => {
   const target = new URL(path, dashboardUrl).toString()
 
   const method = getMethod(event)
-  const headers = getHeaders(event)
   const body = method !== 'GET' && method !== 'HEAD' ? await readRawBody(event) : undefined
 
-  // clean up headers that shouldn't be forwarded like host
-  const { host, ...forwardHeaders } = headers
+  const { host, ...rawHeaders } = getHeaders(event)
+  const forwardHeaders: Record<string, string> = {}
+  for (const [key, value] of Object.entries(rawHeaders)) {
+    if (typeof value === 'string') forwardHeaders[key] = value
+  }
 
   const response = await fetch(target, {
     method,
-    headers: forwardHeaders as Record<string, string>,
-    body
+    headers: forwardHeaders,
+    body,
   })
 
   // forward response headers
   response.headers.forEach((value, key) => {
     setResponseHeader(event, key, value)
-  })
-
-  // Add CORS headers to the response
-  setResponseHeaders(event, {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   })
 
   return response.body // return the stream
