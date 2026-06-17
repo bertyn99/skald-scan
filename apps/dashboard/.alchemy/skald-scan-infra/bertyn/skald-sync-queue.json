@@ -1,0 +1,32 @@
+{
+  "kind": "cloudflare::Queue",
+  "id": "skald-sync-queue",
+  "fqn": "skald-scan-infra/bertyn/skald-sync-queue",
+  "seq": 3,
+  "data": {},
+  "status": "created",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
+    "Symbol(alchemy::ResourceID)": "skald-sync-queue",
+    "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sync-queue",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 3,
+    "type": "queue",
+    "id": "",
+    "name": "skald-scan-bertyn-sync-queue",
+    "dev": {
+      "id": "skald-sync-queue",
+      "remote": false
+    },
+    "createdOn": "2026-06-17T14:15:50.041Z",
+    "modifiedOn": "2026-06-17T14:15:50.041Z"
+  },
+  "props": {
+    "name": "skald-scan-bertyn-sync-queue",
+    "dev": {
+      "force": true
+    }
+  }
+}

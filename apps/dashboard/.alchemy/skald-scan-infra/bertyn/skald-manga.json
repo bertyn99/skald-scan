@@ -1,0 +1,36 @@
+{
+  "kind": "cloudflare::R2Bucket",
+  "id": "skald-manga",
+  "fqn": "skald-scan-infra/bertyn/skald-manga",
+  "seq": 1,
+  "data": {},
+  "status": "created",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::R2Bucket",
+    "Symbol(alchemy::ResourceID)": "skald-manga",
+    "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-manga",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 1,
+    "name": "skald-scan-bertyn-manga",
+    "location": "",
+    "creationDate": {
+      "@date": "2026-06-17T14:15:50.011Z"
+    },
+    "jurisdiction": "default",
+    "type": "r2_bucket",
+    "accountId": "",
+    "dev": {
+      "id": "skald-scan-bertyn-manga",
+      "remote": false,
+      "isDeployed": false
+    }
+  },
+  "props": {
+    "name": "skald-scan-bertyn-manga",
+    "dev": {
+      "force": true
+    }
+  }
+}
