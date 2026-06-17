@@ -2,25 +2,13 @@ import { chapters, mangaDexSync, processedJobs } from '@skald-scan/shared'
 import type { MangaDexClient } from '@skald-scan/shared'
 import { ChapterStatus, SyncStatus } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
-type D1Database = Parameters<typeof drizzle>[0]
-
-interface DownloadPagesMessage {
-  jobId: string
-  mangaId: string
-  chapterId: string
-  mangaDexChapterId: string
-  type: 'download-pages'
-}
-
-interface QueueBinding {
-  send: (message: DownloadPagesMessage) => Promise<void>
-}
+import { dispatchSyncQueueMessage, type SyncQueueRuntimeEnv } from '../utils/sync-queue'
 
 export async function handleSyncChapters(
   message: { jobId: string; mangaId: string; mangaDexId: string; type: 'sync-chapters' },
-  env: { DB: D1Database; MANGADEX_SYNC_QUEUE: QueueBinding },
+  env: SyncQueueRuntimeEnv,
   client: MangaDexClient,
 ): Promise<void> {
   const db = drizzle(env.DB)
@@ -62,7 +50,7 @@ export async function handleSyncChapters(
         mangaId: message.mangaId,
         title: mdChapter.attributes.title ?? `Chapter ${chapterNumber}`,
         chapterNumber,
-        language: mdChapter.attributes.translatedLanguage?.[0] ?? 'en',
+        language: mdChapter.attributes.translatedLanguage ?? 'en',
         pagesCount: mdChapter.attributes.pages ?? 0,
         status: ChapterStatus.Available,
         scanlator: mdChapter.relationships?.find(r => r.type === 'scanlation_group')?.id ?? null,
@@ -72,13 +60,23 @@ export async function handleSyncChapters(
       })
 
       if (mdChapter.id) {
-        await env.MANGADEX_SYNC_QUEUE.send({
-          jobId: crypto.randomUUID(),
-          mangaId: message.mangaId,
-          chapterId,
-          mangaDexChapterId: mdChapter.id,
-          type: 'download-pages',
-        })
+        try {
+          await dispatchSyncQueueMessage(env, {
+            jobId: crypto.randomUUID(),
+            mangaId: message.mangaId,
+            chapterId,
+            mangaDexChapterId: mdChapter.id,
+            type: 'download-pages',
+          }, client)
+        } catch (error) {
+          console.error(JSON.stringify({
+            level: 'warn',
+            message: 'Page download failed for chapter',
+            chapterId,
+            mangaDexChapterId: mdChapter.id,
+            error: String(error),
+          }))
+        }
       }
     }
 

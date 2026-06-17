@@ -38,16 +38,11 @@ export default defineEventHandler(async (event) => {
 
   const chapterItems = await db.select({
     id: chapters.id,
-    mangaId: chapters.mangaId,
     title: chapters.title,
     chapterNumber: chapters.chapterNumber,
     language: chapters.language,
     pagesCount: chapters.pagesCount,
     status: chapters.status,
-    scanlator: chapters.scanlator,
-    mangaDexChapterId: chapters.mangaDexChapterId,
-    createdAt: chapters.createdAt,
-    updatedAt: chapters.updatedAt
   })
   .from(chapters)
   .where(eq(chapters.mangaId, mangaId))
@@ -55,7 +50,10 @@ export default defineEventHandler(async (event) => {
   .all()
 
   return {
-    item,
-    chapters: chapterItems
+    manga: {
+      ...item,
+      chapterCount: chapterItems.length,
+    },
+    chapters: chapterItems,
   }
 })

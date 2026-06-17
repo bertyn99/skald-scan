@@ -1,25 +1,38 @@
-import { defineEventHandler, readBody, createError } from 'h3'
 import type { TriggerImportRequest, TriggerImportResponse } from '@skald-scan/shared'
+import { createError, defineEventHandler } from 'h3'
 
-interface QueueBinding {
-  send: (message: { jobId: string; mangaDexId: string; type: 'import-manga' }) => Promise<void>
-}
+import { getDatabaseFromEvent, getSyncQueueFromEvent, readEventBody } from '../../utils/storage'
+import { dispatchSyncQueueMessage } from '../../utils/sync-queue'
 
 export default defineEventHandler(async (event): Promise<TriggerImportResponse> => {
-  const body = await readBody<TriggerImportRequest>(event)
+  const body = await readEventBody<TriggerImportRequest>(event)
 
   if (!body?.mangaDexId || typeof body.mangaDexId !== 'string') {
     throw createError({ statusCode: 400, statusMessage: 'mangaDexId is required' })
   }
 
   const jobId = crypto.randomUUID()
-  const queue = event.context.cloudflare.env.MANGADEX_SYNC_QUEUE as QueueBinding
 
-  await queue.send({
-    jobId,
-    mangaDexId: body.mangaDexId,
-    type: 'import-manga',
-  })
+  try {
+    await dispatchSyncQueueMessage(
+      {
+        DB: getDatabaseFromEvent(event),
+        SYNC_QUEUE: getSyncQueueFromEvent(event),
+      },
+      {
+        type: 'import-manga',
+        jobId,
+        mangaDexId: body.mangaDexId,
+      },
+    )
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    throw createError({
+      statusCode: 502,
+      statusMessage: 'Import failed',
+      message: detail,
+    })
+  }
 
   return { jobId }
 })

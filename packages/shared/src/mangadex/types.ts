@@ -3,6 +3,9 @@ export type MangaDexResult = 'ok' | 'error'
 export interface MangaDexRelationship {
   id: string
   type: string
+  attributes?: {
+    fileName?: string
+  }
 }
 
 export interface MangaDexResource<TType extends string, TAttributes> {
@@ -111,6 +114,7 @@ export interface MangaDexSearchResponse<T> {
   result: MangaDexResult
   response: 'collection'
   data: T[]
+  included?: MangaDexCoverArt[]
   limit: number
   offset: number
   total: number

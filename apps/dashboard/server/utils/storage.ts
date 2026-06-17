@@ -11,8 +11,35 @@ export type ExtractZipQueueMessage = {
   tempR2Key: string
 }
 
+export type ImportMangaQueueMessage = {
+  type: 'import-manga'
+  jobId: string
+  mangaDexId: string
+}
+
+export type SyncChaptersQueueMessage = {
+  type: 'sync-chapters'
+  jobId: string
+  mangaId: string
+  mangaDexId: string
+}
+
+export type DownloadPagesQueueMessage = {
+  type: 'download-pages'
+  jobId: string
+  mangaId: string
+  chapterId: string
+  mangaDexChapterId: string
+}
+
+export type SyncQueueMessage =
+  | ExtractZipQueueMessage
+  | ImportMangaQueueMessage
+  | SyncChaptersQueueMessage
+  | DownloadPagesQueueMessage
+
 type QueueBinding = {
-  send: (message: ExtractZipQueueMessage) => Promise<void>
+  send: (message: SyncQueueMessage) => Promise<void>
 }
 
 export type StorageObject = {

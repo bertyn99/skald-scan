@@ -1,10 +1,10 @@
 import { chapters, manga, mangaDexSync, processedJobs } from '@skald-scan/shared'
-import type { MangaDexClient } from '@skald-scan/shared'
-import { MangaStatus, SyncStatus } from '@skald-scan/shared'
+import type { MangaDexClient, MangaDexManga } from '@skald-scan/shared'
+import { buildMangaDexCoverUrl, MangaStatus, SyncStatus } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 
-type D1Database = Parameters<typeof drizzle>[0]
+import { dispatchSyncQueueMessage, type SyncQueueRuntimeEnv } from '../utils/sync-queue'
 
 interface ImportMangaMessage {
   jobId: string
@@ -12,20 +12,9 @@ interface ImportMangaMessage {
   type: 'import-manga'
 }
 
-interface SyncChaptersMessage {
-  jobId: string
-  mangaId: string
-  mangaDexId: string
-  type: 'sync-chapters'
-}
-
-interface QueueBinding {
-  send: (message: SyncChaptersMessage) => Promise<void>
-}
-
 export async function handleImportManga(
   message: ImportMangaMessage,
-  env: { DB: D1Database; MANGADEX_SYNC_QUEUE: QueueBinding },
+  env: SyncQueueRuntimeEnv,
   client: MangaDexClient,
 ): Promise<void> {
   const db = drizzle(env.DB)
@@ -48,66 +37,101 @@ export async function handleImportManga(
     const response = await client.getManga(message.mangaDexId)
     const mdManga = response.data
 
-    const title = mdManga.attributes.title['en'] ?? mdManga.attributes.title[Object.keys(mdManga.attributes.title)[0]] ?? 'Unknown'
-    const description = mdManga.attributes.description?.['en'] ?? null
+    const title = mdManga.attributes.title.en
+      ?? Object.values(mdManga.attributes.title)[0]
+      ?? 'Unknown'
+    const description = mdManga.attributes.description?.en ?? null
     const status = mapMangaDexStatus(mdManga.attributes.status)
-    const tags = mdManga.attributes.tags?.map(t => t.attributes.name['en'] ?? '').filter(Boolean).join(', ') ?? null
+    const tags = mdManga.attributes.tags
+      ?.map((tag) => tag.attributes.name.en ?? Object.values(tag.attributes.name)[0] ?? '')
+      .filter(Boolean)
+      .join(', ') ?? null
 
-    let author: string | null = null
-    let artist: string | null = null
-    if (mdManga.relationships) {
-      for (const rel of mdManga.relationships) {
-        if (rel.type === 'author') {
-          const authorResp = await client.getAuthor(rel.id)
-          author = authorResp.data.attributes.name
-        }
-        if (rel.type === 'artist') {
-          const authorResp = await client.getAuthor(rel.id)
-          artist = authorResp.data.attributes.name
-        }
-      }
+    const author = await resolveRelationshipName(client, mdManga, 'author')
+    const artist = await resolveRelationshipName(client, mdManga, 'artist')
+    const coverUrl = resolveCoverUrl(message.mangaDexId, mdManga)
+
+    const existingManga = await db.select({ id: manga.id })
+      .from(manga)
+      .where(eq(manga.mangaDexId, message.mangaDexId))
+      .get()
+
+    const mangaId = existingManga?.id ?? crypto.randomUUID()
+    const now = Date.now()
+
+    if (!existingManga) {
+      await db.insert(manga).values({
+        id: mangaId,
+        title,
+        description,
+        coverUrl,
+        status,
+        mangaDexId: message.mangaDexId,
+        author,
+        artist,
+        tags,
+        createdAt: now,
+        updatedAt: now,
+      })
+    } else {
+      await db.update(manga)
+        .set({
+          title,
+          description,
+          coverUrl,
+          status,
+          author,
+          artist,
+          tags,
+          updatedAt: now,
+        })
+        .where(eq(manga.id, mangaId))
     }
 
-    let coverUrl: string | null = null
-    if (mdManga.relationships) {
-      const coverRel = mdManga.relationships.find(r => r.type === 'cover_art')
-      if (coverRel) {
-        const cover = await client.getCoverArt(message.mangaDexId)
-        coverUrl = cover?.url ?? null
-      }
+    const existingSync = await db.select({ id: mangaDexSync.id })
+      .from(mangaDexSync)
+      .where(eq(mangaDexSync.mangaId, mangaId))
+      .get()
+
+    if (!existingSync) {
+      await db.insert(mangaDexSync).values({
+        id: crypto.randomUUID(),
+        mangaId,
+        syncStatus: SyncStatus.Syncing,
+        autoSyncEnabled: true,
+        createdAt: now,
+        updatedAt: now,
+      })
+    } else {
+      await db.update(mangaDexSync)
+        .set({ syncStatus: SyncStatus.Syncing, updatedAt: now, lastError: null })
+        .where(eq(mangaDexSync.mangaId, mangaId))
     }
 
-    const mangaId = crypto.randomUUID()
+    try {
+      await dispatchSyncQueueMessage(env, {
+        jobId: crypto.randomUUID(),
+        mangaId,
+        mangaDexId: message.mangaDexId,
+        type: 'sync-chapters',
+      }, client)
+    } catch (error) {
+      console.error(JSON.stringify({
+        level: 'error',
+        message: 'Chapter sync failed after manga import',
+        mangaId,
+        mangaDexId: message.mangaDexId,
+        error: String(error),
+      }))
 
-    await db.insert(manga).values({
-      id: mangaId,
-      title,
-      description,
-      coverUrl,
-      status,
-      mangaDexId: message.mangaDexId,
-      author,
-      artist,
-      tags,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    })
-
-    await db.insert(mangaDexSync).values({
-      id: crypto.randomUUID(),
-      mangaId,
-      syncStatus: SyncStatus.Syncing,
-      autoSyncEnabled: true,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    })
-
-    await env.MANGADEX_SYNC_QUEUE.send({
-      jobId: crypto.randomUUID(),
-      mangaId,
-      mangaDexId: message.mangaDexId,
-      type: 'sync-chapters',
-    })
+      await db.update(mangaDexSync)
+        .set({
+          syncStatus: SyncStatus.Error,
+          lastError: String(error),
+          updatedAt: Date.now(),
+        })
+        .where(eq(mangaDexSync.mangaId, mangaId))
+    }
 
     await db.update(processedJobs)
       .set({ status: 'completed' })
@@ -118,6 +142,34 @@ export async function handleImportManga(
       .where(eq(processedJobs.jobId, message.jobId))
     throw error
   }
+}
+
+async function resolveRelationshipName(
+  client: MangaDexClient,
+  mdManga: MangaDexManga,
+  type: 'author' | 'artist',
+): Promise<string | null> {
+  const relationship = mdManga.relationships?.find((rel) => rel.type === type)
+  if (!relationship) {
+    return null
+  }
+
+  try {
+    const response = await client.getAuthor(relationship.id)
+    return response.data.attributes.name
+  } catch {
+    return null
+  }
+}
+
+function resolveCoverUrl(mangaDexId: string, mdManga: MangaDexManga): string | null {
+  const coverRelationship = mdManga.relationships?.find((rel) => rel.type === 'cover_art')
+  const fileName = coverRelationship?.attributes?.fileName
+  if (!fileName) {
+    return null
+  }
+
+  return buildMangaDexCoverUrl(mangaDexId, fileName)
 }
 
 function mapMangaDexStatus(status?: string): string {

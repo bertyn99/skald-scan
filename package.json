@@ -35,7 +35,7 @@
     ],
     "catalog": {
       "nuxt": "^3.17.5",
-      "@nuxt/ui": "^3.2.0",
+      "@nuxt/ui": "4.8.2",
       "tailwindcss": "^4.2.2",
       "typescript": "^5.8.3",
       "alchemy": "^0.93.12",

@@ -4,19 +4,21 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev --port 3000",
+    "dev": "alchemy dev --profile bertyn",
+    "dev:local": "nuxt dev --port 3000",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
-    "deploy": "alchemy deploy --app dashboard",
-    "destroy": "alchemy destroy --app dashboard"
+    "deploy": "alchemy deploy --app dashboard --profile bertyn",
+    "destroy": "alchemy destroy --app dashboard --profile bertyn"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.100",
     "@iconify-json/simple-icons": "^1.2.75",
-    "@nuxt/ui": "^4.4.0",
+    "@nuxt/image": "^2.0.0",
+    "@nuxt/ui": "4.8.2",
     "@skald-scan/shared": "workspace:*",
     "better-auth": "1.4.16",
     "drizzle-orm": "0.45.1",

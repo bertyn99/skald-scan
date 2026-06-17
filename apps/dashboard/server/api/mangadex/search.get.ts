@@ -1,9 +1,12 @@
 import type { MangaDexClient } from '@skald-scan/shared'
 import { MangaDexClient as MangaDexClientClass } from '@skald-scan/shared'
-import { createError, defineEventHandler, getQuery } from 'h3'
+import { createError, defineEventHandler } from 'h3'
+
+import { mapMangaDexSearchResults } from '../../utils/mangadex-search'
+import { readEventQuery } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
+  const query = readEventQuery(event)
   const q = query.q
 
   if (!q || typeof q !== 'string' || q.trim().length === 0) {
@@ -16,8 +19,8 @@ export default defineEventHandler(async (event) => {
   const client: MangaDexClient = new MangaDexClientClass()
 
   try {
-    const results = await client.searchManga(q, { limit, offset })
-    return results
+    const response = await client.searchManga(q, { limit, offset })
+    return mapMangaDexSearchResults(response)
   } catch (error) {
     throw createError({
       statusCode: 502,

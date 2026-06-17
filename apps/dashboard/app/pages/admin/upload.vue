@@ -1,88 +1,107 @@
 <template>
-  <UContainer class="py-8 space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">Upload Manga</h1>
-    </div>
+  <UPage>
+    <UPageHeader
+      title="Upload manga"
+      description="Create a new title manually, then attach chapter archives."
+      :links="[{ label: 'Back to library', icon: 'i-lucide-arrow-left', to: '/admin/library', color: 'neutral', variant: 'ghost' }]"
+    />
 
-    <UCard>
-      <div class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UFormField label="Title" required>
-            <UInput v-model="form.title" placeholder="Manga title" />
-          </UFormField>
-          <UFormField label="Author">
-            <UInput v-model="form.author" placeholder="Author name" />
-          </UFormField>
-        </div>
+    <UPageBody>
+      <UCard variant="subtle">
+        <div class="space-y-8">
+          <div class="space-y-4">
+            <h2 class="text-sm font-semibold text-highlighted">Metadata</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <UFormField label="Title" required>
+                <UInput v-model="form.title" placeholder="Manga title" />
+              </UFormField>
+              <UFormField label="Author">
+                <UInput v-model="form.author" placeholder="Author name" />
+              </UFormField>
+            </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <UFormField label="Artist">
-            <UInput v-model="form.artist" placeholder="Artist name" />
-          </UFormField>
-          <UFormField label="Tags (comma separated)">
-            <UInput v-model="form.tags" placeholder="action, comedy, romance" />
-          </UFormField>
-        </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <UFormField label="Artist">
+                <UInput v-model="form.artist" placeholder="Artist name" />
+              </UFormField>
+              <UFormField label="Tags (comma separated)">
+                <UInput v-model="form.tags" placeholder="action, comedy, romance" />
+              </UFormField>
+            </div>
 
-        <UFormField label="Description">
-          <textarea
-            v-model="form.description"
-            rows="3"
-            class="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            placeholder="Brief description..."
-          />
-        </UFormField>
+            <UFormField label="Description">
+              <UTextarea
+                v-model="form.description"
+                :rows="3"
+                placeholder="Brief description..."
+                autoresize
+              />
+            </UFormField>
 
-        <UFormField label="Cover Image">
-          <AdminUploadDropzone
-            accept="image/*"
-            :max-size="5 * 1024 * 1024"
-            @upload="handleCoverUpload"
-          />
-          <div v-if="coverPreview" class="mt-2">
-            <img :src="coverPreview" alt="Cover preview" class="w-32 h-44 object-cover rounded-lg border" />
+            <UFormField label="Cover image">
+              <AdminUploadDropzone
+                accept="image/*"
+                :max-size="5 * 1024 * 1024"
+                @upload="handleCoverUpload"
+              />
+              <div v-if="coverPreview" class="mt-3">
+                <img
+                  :src="coverPreview"
+                  alt="Cover preview"
+                  class="w-32 h-44 object-cover rounded-lg ring ring-default"
+                >
+              </div>
+            </UFormField>
           </div>
-        </UFormField>
 
-        <USeparator />
+          <USeparator />
 
-        <div class="space-y-3">
-          <h3 class="text-lg font-semibold">Chapter Archive</h3>
-          <p class="text-sm text-muted-foreground">Upload a ZIP or CBZ file containing chapter pages.</p>
+          <div class="space-y-4">
+            <div>
+              <h2 class="text-sm font-semibold text-highlighted">Chapter archive</h2>
+              <p class="text-sm text-muted mt-1">
+                Upload a ZIP or CBZ file containing chapter pages after the manga is created.
+              </p>
+            </div>
 
-          <UFormField label="Chapter Number" required>
-            <UInput v-model.number="chapterNumber" type="number" placeholder="1" min="1" />
-          </UFormField>
+            <UFormField label="Chapter number" required>
+              <UInput v-model.number="chapterNumber" type="number" placeholder="1" min="1" class="max-w-32" />
+            </UFormField>
 
-          <AdminUploadDropzone
-            accept=".zip,.cbz"
-            :max-size="100 * 1024 * 1024"
-            @upload="handleZipUpload"
-          />
-
-          <div v-if="zipStatus" class="flex items-center gap-2 text-sm">
-            <UIcon
-              :name="zipStatus.success ? 'i-lucide-check-circle' : 'i-lucide-loader-2'"
-              :class="['w-4 h-4', zipStatus.success ? 'text-success' : 'animate-spin text-primary']"
+            <AdminUploadDropzone
+              accept=".zip,.cbz"
+              :max-size="100 * 1024 * 1024"
+              @upload="handleZipUpload"
             />
-            <span>{{ zipStatus.message }}</span>
+
+            <UAlert
+              v-if="zipStatus"
+              :color="zipStatus.success ? 'success' : 'info'"
+              variant="subtle"
+              :icon="zipStatus.success ? 'i-lucide-check-circle' : 'i-lucide-loader-2'"
+              :title="zipStatus.message"
+              :ui="{ icon: zipStatus.success ? undefined : 'animate-spin' }"
+            />
+          </div>
+
+          <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+            <UButton variant="outline" color="neutral" to="/admin/library">
+              Cancel
+            </UButton>
+            <UButton
+              color="primary"
+              icon="i-lucide-plus"
+              :disabled="!form.title || creating"
+              :loading="creating"
+              @click="createManga"
+            >
+              Create manga
+            </UButton>
           </div>
         </div>
-
-        <div class="flex justify-end gap-3 pt-4">
-          <UButton variant="outline" color="neutral" to="/admin/library">Cancel</UButton>
-          <UButton
-            color="primary"
-            :disabled="!form.title || creating"
-            :loading="creating"
-            @click="createManga"
-          >
-            Create Manga
-          </UButton>
-        </div>
-      </div>
-    </UCard>
-  </UContainer>
+      </UCard>
+    </UPageBody>
+  </UPage>
 </template>
 
 <script setup lang="ts">
@@ -95,7 +114,7 @@ const form = reactive({
   author: '',
   artist: '',
   description: '',
-  tags: '',
+  tags: ''
 })
 
 const coverPreview = ref<string | null>(null)
@@ -135,10 +154,10 @@ async function handleZipUpload(file: File) {
           mangaId: createdMangaId.value,
           chapterId,
           fileName: file.name,
-          content: base64,
-        },
+          content: base64
+        }
       })
-      zipStatus.value = { success: true, message: `Uploaded ${file.name} — extraction queued.` }
+      zipStatus.value = { success: true, message: `Uploaded ${file.name}. Extraction queued.` }
     } catch (err) {
       zipStatus.value = { success: false, message: `Upload failed: ${(err as Error).message}` }
     }
@@ -163,8 +182,8 @@ async function createManga() {
         artist: form.artist.trim() || null,
         description: form.description.trim() || null,
         tags: tagsJson,
-        coverUrl: coverData.value ? `data:uploaded` : null,
-      },
+        coverUrl: coverData.value ? `data:uploaded` : null
+      }
     })
 
     createdMangaId.value = result.item.id

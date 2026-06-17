@@ -42,6 +42,9 @@ const createEvent = <T>(fixture: EventFixture): T => {
           MANGADEX_SYNC_QUEUE: {
             send: vi.fn().mockResolvedValue(undefined),
           },
+          SYNC_QUEUE: {
+            send: vi.fn().mockResolvedValue(undefined),
+          },
           ...fixture.env,
         },
       },
@@ -72,7 +75,7 @@ describe('MangaDex sync API routes', () => {
       const event = createEvent<Parameters<typeof importPostHandler>[0]>({
         auth: true,
         env: {
-          MANGADEX_SYNC_QUEUE: { send: queueSend },
+          SYNC_QUEUE: { send: queueSend },
         },
         body: { mangaDexId: 'md-test-123' },
       })
@@ -82,9 +85,9 @@ describe('MangaDex sync API routes', () => {
       expect(result.jobId).toBe(uuid)
       expect(queueSend).toHaveBeenCalledTimes(1)
       expect(queueSend).toHaveBeenCalledWith({
+        type: 'import-manga',
         jobId: uuid,
         mangaDexId: 'md-test-123',
-        type: 'import-manga',
       })
     })
 

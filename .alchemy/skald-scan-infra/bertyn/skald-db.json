@@ -20,12 +20,27 @@
       "id": "skald-scan-bertyn-db",
       "remote": false
     },
+    "migrationsDir": "/home/bertyn/project/yggdraz/skald-scan/packages/shared/drizzle",
     "migrationsTable": "d1_migrations",
     "jurisdiction": "default"
   },
   "props": {
     "name": "skald-scan-bertyn-db",
-    "migrationsFiles": [],
+    "migrationsDir": "/home/bertyn/project/yggdraz/skald-scan/packages/shared/drizzle",
+    "migrationsFiles": [
+      {
+        "id": "0000_silly_professor_monster.sql",
+        "hash": "192e753332e5f162e27d946371a98e8f1a1ac097cbf716b82f9f3d440ebcfa6c"
+      },
+      {
+        "id": "0001_damp_shape.sql",
+        "hash": "8cffda52e4c593ba5a899d967405521ed441512140c685b0d8f0abe0365454af"
+      },
+      {
+        "id": "0002_kind_felicia_hardy.sql",
+        "hash": "9948afc3560f6c2562e7bef611770af557e8291f65d1df21d70940bd4fd454f7"
+      }
+    ],
     "importFiles": [],
     "dev": {
       "force": false

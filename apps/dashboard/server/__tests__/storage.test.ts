@@ -118,7 +118,7 @@ describe('storage + manga APIs', () => {
     const db = createDatabaseBinding([
       {
         allResult: {
-          results: [{ id: 'm1', title: 'Manga One' }]
+          results: [{ id: 'm1', title: 'Manga One', chapterCount: 1 }]
         },
         onBind: (args) => expect(args).toEqual([10, 5])
       },
@@ -133,8 +133,7 @@ describe('storage + manga APIs', () => {
     })
 
     await expect(mangaIndexGetHandler(event)).resolves.toMatchObject({
-      items: [{ id: 'm1', title: 'Manga One' }],
-      pagination: { limit: 10, offset: 5, total: 1 }
+      manga: [{ id: 'm1', title: 'Manga One', chapterCount: 0 }],
     })
   })
 
@@ -175,8 +174,8 @@ describe('storage + manga APIs', () => {
     })
 
     await expect(mangaGetHandler(event)).resolves.toMatchObject({
-      item: { id: 'm1', title: 'Manga One' },
-      chapters: [{ id: 'c1', mangaId: 'm1' }]
+      manga: { id: 'm1', title: 'Manga One', chapterCount: 1 },
+      chapters: [{ id: 'c1' }],
     })
   })
 

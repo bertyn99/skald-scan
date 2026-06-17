@@ -1,3 +1,5 @@
+import { createError, defineEventHandler } from 'h3'
+
 import { handleScheduledSync } from '../../services/scheduled-sync'
 
 export default defineEventHandler(async (event) => {

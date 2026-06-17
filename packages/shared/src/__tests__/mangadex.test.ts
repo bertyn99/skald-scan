@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_MANGADEX_USER_AGENT,
   MangaDexClient,
+  buildMangaDexCoverUrl,
 } from '../mangadex'
 
 const jsonResponse = (body: unknown, status = 200, headers?: HeadersInit): Response =>
@@ -45,6 +46,7 @@ describe('MangaDexClient', () => {
       ['safe', 'suggestive', 'pornographic'].sort(),
     )
     expect(parsed.searchParams.getAll('contentRating[]')).not.toContain('erotica')
+    expect(parsed.searchParams.getAll('includes[]')).toEqual(['cover_art'])
 
     const headers = new Headers(init?.headers)
     expect(headers.get('User-Agent')).toBe(DEFAULT_MANGADEX_USER_AGENT)
@@ -78,6 +80,12 @@ describe('MangaDexClient', () => {
 
     const headers = new Headers(init?.headers)
     expect(headers.get('User-Agent')).toBe('CustomAgent/2.0')
+  })
+
+  it('builds thumbnail cover URLs with size suffix', () => {
+    expect(buildMangaDexCoverUrl('manga-123', 'cover.jpg', { size: 256 })).toBe(
+      'https://uploads.mangadex.org/covers/manga-123/cover.jpg.256.jpg',
+    )
   })
 
   it('constructs cover art URL from cover endpoint response', async () => {

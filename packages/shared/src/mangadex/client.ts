@@ -16,6 +16,18 @@ export const DEFAULT_MANGADEX_UPLOADS_BASE_URL = 'https://uploads.mangadex.org'
 export const DEFAULT_MANGADEX_USER_AGENT = 'SkaldScan/1.0 (+https://github.com/skald-scan)'
 const DEFAULT_CONTENT_RATING = ['safe', 'suggestive', 'pornographic'] as const
 
+export type MangaDexCoverSize = 256 | 512
+
+export function buildMangaDexCoverUrl(
+  mangaId: string,
+  fileName: string,
+  options: { uploadsBaseUrl?: string; size?: MangaDexCoverSize } = {},
+): string {
+  const base = (options.uploadsBaseUrl ?? DEFAULT_MANGADEX_UPLOADS_BASE_URL).replace(/\/+$/, '')
+  const url = `${base}/covers/${encodeURIComponent(mangaId)}/${encodeURIComponent(fileName)}`
+  return options.size ? `${url}.${options.size}.jpg` : url
+}
+
 export interface MangaDexClientOptions {
   baseUrl?: string
   uploadsBaseUrl?: string
@@ -98,6 +110,8 @@ export class MangaDexClient {
       params.append('contentRating[]', rating)
     }
 
+    params.append('includes[]', 'cover_art')
+
     return this.request<MangaDexSearchResponse<MangaDexManga>>('/manga', params)
   }
 
@@ -163,7 +177,9 @@ export class MangaDexClient {
 
     return {
       ...coverArt,
-      url: this.buildCoverUrl(mangaId, coverArt.attributes.fileName),
+      url: buildMangaDexCoverUrl(mangaId, coverArt.attributes.fileName, {
+        uploadsBaseUrl: this.uploadsBaseUrl,
+      }),
     }
   }
 
@@ -227,10 +243,6 @@ export class MangaDexClient {
 
     const query = params.toString()
     return query.length > 0 ? `${base}?${query}` : base
-  }
-
-  private buildCoverUrl(mangaId: string, fileName: string): string {
-    return `${this.uploadsBaseUrl}/covers/${encodeURIComponent(mangaId)}/${encodeURIComponent(fileName)}`
   }
 
   private captureRateLimitHeaders(headers: Headers): void {

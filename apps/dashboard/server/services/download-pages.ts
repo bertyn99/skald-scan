@@ -57,6 +57,12 @@ export async function handleDownloadPages(
     await db.update(processedJobs)
       .set({ status: 'failed', metadata: JSON.stringify({ error: String(error) }) })
       .where(eq(processedJobs.jobId, message.jobId))
-    throw error
+    console.error(JSON.stringify({
+      level: 'error',
+      message: 'Page download job failed',
+      jobId: message.jobId,
+      chapterId: message.chapterId,
+      error: String(error),
+    }))
   }
 }

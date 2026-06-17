@@ -12,6 +12,9 @@ export const dashboard = await Nuxt("dashboard", {
     SESSIONS: sessions,
     SYNC_QUEUE: syncQueue,
   },
+  dev: {
+    command: "pnpm exec nuxt dev --port 3000",
+  },
 });
 
 await app.finalize();

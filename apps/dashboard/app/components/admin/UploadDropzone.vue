@@ -1,7 +1,11 @@
 <template>
   <div
-    class="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer transition-colors hover:border-primary/50 hover:bg-muted/30"
+    class="rounded-lg border-2 border-dashed border-default bg-elevated/30 p-8 text-center cursor-pointer transition-colors hover:border-primary/40 hover:bg-elevated/60 focus-within:ring-2 focus-within:ring-primary/30"
     :class="{ 'border-primary bg-primary/5': isDragging }"
+    role="button"
+    tabindex="0"
+    @keydown.enter="inputRef?.click()"
+    @keydown.space.prevent="inputRef?.click()"
     @dragover.prevent="isDragging = true"
     @dragleave.prevent="isDragging = false"
     @drop.prevent="onDrop"
@@ -11,17 +15,20 @@
       ref="inputRef"
       type="file"
       :accept="accept"
-      class="hidden"
+      class="sr-only"
       @change="onFileSelect"
     >
-    <UIcon name="i-lucide-upload" class="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-    <p class="text-sm text-muted-foreground">
-      Drag and drop a file here, or <span class="text-primary underline">browse</span>
+    <div class="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-default ring ring-default">
+      <UIcon name="i-lucide-upload" class="size-5 text-muted" />
+    </div>
+    <p class="text-sm text-toned">
+      Drag and drop a file here, or
+      <span class="text-primary font-medium">browse</span>
     </p>
-    <p v-if="maxSize" class="text-xs text-muted-foreground mt-1">
+    <p v-if="maxSize" class="text-xs text-muted mt-1.5 tabular-nums">
       Max size: {{ formatBytes(maxSize) }}
     </p>
-    <p v-if="selectedFile" class="text-sm mt-3 text-foreground">
+    <p v-if="selectedFile" class="text-sm mt-3 font-medium text-highlighted tabular-nums">
       {{ selectedFile.name }} ({{ formatBytes(selectedFile.size) }})
     </p>
   </div>
@@ -33,7 +40,7 @@ const props = withDefaults(defineProps<{
   maxSize?: number
 }>(), {
   accept: '*',
-  maxSize: 50 * 1024 * 1024,
+  maxSize: 50 * 1024 * 1024
 })
 
 const emit = defineEmits<{
