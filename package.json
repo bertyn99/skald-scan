@@ -15,7 +15,7 @@
     "destroy": "turbo run destroy --ui=stream"
   },
   "devDependencies": {
-    "alchemy": "latest",
+    "alchemy": "^0.93.12",
     "turbo": "^2.5.6",
     "typescript": "^5.8.3",
     "unstorage": "^1.17.5"
@@ -34,7 +34,7 @@
       "@nuxt/ui": "^3.2.0",
       "tailwindcss": "^4.2.2",
       "typescript": "^5.8.3",
-      "alchemy": "latest",
+      "alchemy": "^0.93.12",
       "@nuxt/eslint": "^1.15.2",
       "eslint": "^10.1.0",
       "vue-tsc": "^3.2.6",

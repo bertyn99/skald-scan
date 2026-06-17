@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.15.2",
-    "alchemy": "latest",
+    "alchemy": "^0.93.12",
     "eslint": "^10.1.0",
     "typescript": "^5.8.3",
     "vitest": "^4.1.3",
