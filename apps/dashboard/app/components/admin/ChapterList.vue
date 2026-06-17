@@ -47,7 +47,7 @@ const sortedChapters = computed(() =>
   [...props.chapters].sort((a, b) => a.chapterNumber - b.chapterNumber)
 )
 
-function chapterStatusColor(status: string): string {
+function chapterStatusColor(status: string): 'success' | 'primary' | 'error' | 'neutral' {
   switch (status) {
     case 'ready': return 'success'
     case 'downloading': return 'primary'

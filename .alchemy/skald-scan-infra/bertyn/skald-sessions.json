@@ -1,0 +1,32 @@
+{
+  "kind": "cloudflare::KVNamespace",
+  "id": "skald-sessions",
+  "fqn": "skald-scan-infra/bertyn/skald-sessions",
+  "seq": 2,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::KVNamespace",
+    "Symbol(alchemy::ResourceID)": "skald-sessions",
+    "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sessions",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 2,
+    "type": "kv_namespace",
+    "namespaceId": "eddce5ca4aa947e597636d4b4827f952",
+    "title": "skald-scan-bertyn-sessions",
+    "dev": {
+      "id": "skald-sessions",
+      "remote": false
+    },
+    "createdAt": 1781696549442,
+    "modifiedAt": 1781696549442
+  },
+  "props": {
+    "title": "skald-scan-bertyn-sessions",
+    "dev": {
+      "force": false
+    }
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "kind": "cloudflare::Worker",
+  "id": "dashboard",
+  "fqn": "dashboard/bertyn/dashboard",
+  "seq": 1,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::Worker",
+    "Symbol(alchemy::ResourceID)": "dashboard",
+    "Symbol(alchemy::ResourceFQN)": "dashboard/bertyn/dashboard",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 1,
+    "bindings": {
+      "DB": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
+        "Symbol(alchemy::ResourceID)": "skald-db",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-db",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 0,
+        "type": "d1",
+        "id": "52ea0329-18df-47c7-9fb6-edad0e4798e4",
+        "name": "skald-scan-bertyn-db",
+        "dev": {
+          "id": "skald-scan-bertyn-db",
+          "remote": false
+        },
+        "migrationsTable": "d1_migrations",
+        "jurisdiction": "default"
+      },
+      "STORAGE": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::R2Bucket",
+        "Symbol(alchemy::ResourceID)": "skald-manga",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-manga",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 1,
+        "name": "skald-scan-bertyn-manga",
+        "location": "WEUR",
+        "creationDate": {
+          "@date": "2026-06-17T11:42:25.751Z"
+        },
+        "jurisdiction": "default",
+        "type": "r2_bucket",
+        "accountId": "7af936bd50d5d623605f7e5a552a2d6f",
+        "dev": {
+          "id": "skald-scan-bertyn-manga",
+          "remote": false,
+          "isDeployed": true
+        }
+      },
+      "SESSIONS": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::KVNamespace",
+        "Symbol(alchemy::ResourceID)": "skald-sessions",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sessions",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 2,
+        "type": "kv_namespace",
+        "namespaceId": "eddce5ca4aa947e597636d4b4827f952",
+        "title": "skald-scan-bertyn-sessions",
+        "dev": {
+          "id": "skald-sessions",
+          "remote": false
+        },
+        "createdAt": 1781696549442,
+        "modifiedAt": 1781696549442
+      },
+      "SYNC_QUEUE": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
+        "Symbol(alchemy::ResourceID)": "skald-sync-queue",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sync-queue",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 3,
+        "type": "queue",
+        "id": "aae5a48212894093baa1c31b9261c93f",
+        "name": "skald-scan-bertyn-sync-queue",
+        "settings": {
+          "deliveryDelay": 0,
+          "messageRetentionPeriod": 345600
+        },
+        "createdOn": "2026-06-17T11:42:31.370523Z",
+        "modifiedOn": "2026-06-17T11:42:31.370523Z",
+        "accountId": "7af936bd50d5d623605f7e5a552a2d6f",
+        "dev": {
+          "id": "skald-sync-queue",
+          "remote": false
+        }
+      },
+      "ASSETS": {
+        "type": "assets",
+        "path": ".output/public"
+      }
+    },
+    "noBundle": true,
+    "compatibility": "node",
+    "entrypoint": ".output/server/index.mjs",
+    "name": "skald-scan-bertyn-dashboard",
+    "cwd": "",
+    "compatibilityFlags": [
+      "nodejs_compat",
+      "nodejs_compat_populate_process_env"
+    ],
+    "compatibilityDate": "2026-04-24",
+    "assets": {
+      "html_handling": "auto-trailing-slash",
+      "not_found_handling": "single-page-application",
+      "run_worker_first": false
+    },
+    "dev": {
+      "hasRemote": true
+    },
+    "type": "service",
+    "id": "dashboard",
+    "format": "esm",
+    "createdAt": {
+      "@date": "2026-06-17T11:51:17.662Z"
+    },
+    "updatedAt": {
+      "@date": "2026-06-17T12:40:38.036Z"
+    },
+    "url": "https://skald-scan-bertyn-dashboard.bboulikou.workers.dev"
+  },
+  "props": {
+    "bindings": {
+      "DB": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
+        "Symbol(alchemy::ResourceID)": "skald-db",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-db",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 0,
+        "type": "d1",
+        "id": "52ea0329-18df-47c7-9fb6-edad0e4798e4",
+        "name": "skald-scan-bertyn-db",
+        "dev": {
+          "id": "skald-scan-bertyn-db",
+          "remote": false
+        },
+        "migrationsTable": "d1_migrations",
+        "jurisdiction": "default"
+      },
+      "STORAGE": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::R2Bucket",
+        "Symbol(alchemy::ResourceID)": "skald-manga",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-manga",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 1,
+        "name": "skald-scan-bertyn-manga",
+        "location": "WEUR",
+        "creationDate": {
+          "@date": "2026-06-17T11:42:25.751Z"
+        },
+        "jurisdiction": "default",
+        "type": "r2_bucket",
+        "accountId": "7af936bd50d5d623605f7e5a552a2d6f",
+        "dev": {
+          "id": "skald-scan-bertyn-manga",
+          "remote": false,
+          "isDeployed": true
+        }
+      },
+      "SESSIONS": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::KVNamespace",
+        "Symbol(alchemy::ResourceID)": "skald-sessions",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sessions",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 2,
+        "type": "kv_namespace",
+        "namespaceId": "eddce5ca4aa947e597636d4b4827f952",
+        "title": "skald-scan-bertyn-sessions",
+        "dev": {
+          "id": "skald-sessions",
+          "remote": false
+        },
+        "createdAt": 1781696549442,
+        "modifiedAt": 1781696549442
+      },
+      "SYNC_QUEUE": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
+        "Symbol(alchemy::ResourceID)": "skald-sync-queue",
+        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sync-queue",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 3,
+        "type": "queue",
+        "id": "aae5a48212894093baa1c31b9261c93f",
+        "name": "skald-scan-bertyn-sync-queue",
+        "settings": {
+          "deliveryDelay": 0,
+          "messageRetentionPeriod": 345600
+        },
+        "createdOn": "2026-06-17T11:42:31.370523Z",
+        "modifiedOn": "2026-06-17T11:42:31.370523Z",
+        "accountId": "7af936bd50d5d623605f7e5a552a2d6f",
+        "dev": {
+          "id": "skald-sync-queue",
+          "remote": false
+        }
+      },
+      "ASSETS": {
+        "type": "assets",
+        "path": ".output/public"
+      }
+    },
+    "noBundle": true,
+    "compatibility": "node",
+    "entrypoint": ".output/server/index.mjs",
+    "name": "skald-scan-bertyn-dashboard",
+    "cwd": "",
+    "compatibilityFlags": [
+      "nodejs_compat",
+      "nodejs_compat_populate_process_env"
+    ],
+    "compatibilityDate": "2026-04-24",
+    "assets": {
+      "html_handling": "auto-trailing-slash",
+      "not_found_handling": "single-page-application",
+      "run_worker_first": false
+    }
+  }
+}

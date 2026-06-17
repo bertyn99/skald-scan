@@ -1,6 +1,6 @@
 import alchemy from "alchemy";
 import { Nuxt } from "alchemy/cloudflare";
-import { db, storage } from "../../alchemy.run";
+import { db, storage } from "../../alchemy.run.ts";
 
 const app = await alchemy("reader");
 

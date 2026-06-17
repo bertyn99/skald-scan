@@ -10,22 +10,22 @@
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
-    "deploy": "alchemy run --app dashboard",
+    "deploy": "alchemy deploy --app dashboard",
     "destroy": "alchemy destroy --app dashboard"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.100",
     "@iconify-json/simple-icons": "^1.2.75",
-    "@nuxt/ui": "^3.2.0",
+    "@nuxt/ui": "^4.4.0",
     "@skald-scan/shared": "workspace:*",
     "better-auth": "1.4.16",
     "drizzle-orm": "0.45.1",
     "h3": "^1.15.11",
-    "nuxt": "^3.17.5",
+    "nuxt": "4.4.8",
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
-    "@nuxt/eslint": "^1.15.2",
+    "@nuxt/eslint": "^1.16.0",
     "alchemy": "^0.93.12",
     "eslint": "^10.1.0",
     "typescript": "^5.8.3",

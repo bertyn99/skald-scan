@@ -110,7 +110,7 @@ function handleCoverUpload(file: File) {
   const reader = new FileReader()
   reader.onload = (e) => {
     coverPreview.value = e.target?.result as string
-    coverData.value = (e.target?.result as string).split(',')[1]
+    coverData.value = (e.target?.result as string).split(',')[1] ?? null
   }
   reader.readAsDataURL(file)
 }

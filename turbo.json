@@ -24,7 +24,11 @@
       "dependsOn": ["^deploy"],
       "cache": false
     },
-    "destroy": {
+    "dashboard#destroy": {
+      "dependsOn": ["reader#destroy"],
+      "cache": false
+    },
+    "reader#destroy": {
       "cache": false
     }
   }

@@ -11,8 +11,12 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "deploy": "turbo run deploy --ui=stream",
-    "destroy": "turbo run destroy --ui=stream"
+    "deploy:infra": "alchemy deploy --app skald-scan-infra",
+    "deploy:apps": "turbo run deploy --ui=stream",
+    "deploy": "pnpm deploy:infra && pnpm deploy:apps",
+    "destroy:apps": "turbo run destroy --ui=stream",
+    "destroy:infra": "alchemy destroy --app skald-scan-infra",
+    "destroy": "pnpm destroy:apps && pnpm destroy:infra"
   },
   "devDependencies": {
     "alchemy": "^0.93.12",

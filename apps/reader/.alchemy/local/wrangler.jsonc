@@ -1,0 +1,32 @@
+{
+  "name": "skald-scan-bertyn-reader",
+  "main": "../../.output/server/index.mjs",
+  "compatibility_date": "2026-04-24",
+  "compatibility_flags": [
+    "nodejs_compat",
+    "nodejs_compat_populate_process_env"
+  ],
+  "assets": {
+    "directory": "../../.output/public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "html_handling": "auto-trailing-slash",
+    "run_worker_first": false
+  },
+  "r2_buckets": [
+    {
+      "binding": "STORAGE",
+      "bucket_name": "skald-scan-bertyn-manga",
+      "preview_bucket_name": "skald-scan-bertyn-manga"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_id": "52ea0329-18df-47c7-9fb6-edad0e4798e4",
+      "database_name": "skald-scan-bertyn-db",
+      "preview_database_id": "52ea0329-18df-47c7-9fb6-edad0e4798e4"
+    }
+  ],
+  "vars": {}
+}

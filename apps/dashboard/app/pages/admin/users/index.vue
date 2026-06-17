@@ -11,7 +11,7 @@
     <div v-else-if="error" class="text-center py-16 text-muted-foreground">
       <UIcon name="i-lucide-alert-circle" class="w-12 h-12 mx-auto mb-4 text-error" />
       <p>Failed to load users.</p>
-      <UButton variant="outline" class="mt-4" @click="refresh">Retry</UButton>
+      <UButton variant="outline" class="mt-4" @click="() => refresh()">Retry</UButton>
     </div>
 
     <div v-else-if="userList.length === 0" class="text-center py-16 text-muted-foreground">

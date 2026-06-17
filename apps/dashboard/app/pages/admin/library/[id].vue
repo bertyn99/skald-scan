@@ -14,7 +14,7 @@
     <div v-else-if="error" class="text-center py-16 text-muted-foreground">
       <UIcon name="i-lucide-alert-circle" class="w-12 h-12 mx-auto mb-4 text-error" />
       <p>Failed to load manga.</p>
-      <UButton variant="outline" class="mt-4" @click="refresh">Retry</UButton>
+      <UButton variant="outline" class="mt-4" @click="() => refresh()">Retry</UButton>
     </div>
 
     <template v-else-if="mangaData">

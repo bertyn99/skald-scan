@@ -11,7 +11,7 @@
     "typecheck": "nuxt typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
-    "deploy": "alchemy run --app reader",
+    "deploy": "alchemy deploy --app reader",
     "destroy": "alchemy destroy --app reader"
   },
   "dependencies": {

@@ -152,7 +152,7 @@ function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
 function crc32(data: Uint8Array): number {
   let crc = 0xFFFFFFFF
   for (let i = 0; i < data.length; i++) {
-    crc ^= data[i]
+    crc ^= data[i] ?? 0
     for (let j = 0; j < 8; j++) {
       crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0)
     }
