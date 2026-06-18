@@ -5,7 +5,7 @@ import importStatusGetHandler from '../api/mangadex/import/status/[jobId].get'
 
 const { mockGet, mockReadBody } = vi.hoisted(() => ({
   mockGet: vi.fn(),
-  mockReadBody: vi.fn((event: any) => Promise.resolve(event.context?.body)),
+  mockReadBody: vi.fn((event: { context?: { body?: unknown } }) => Promise.resolve(event.context?.body)),
 }))
 
 vi.mock('h3', async (importOriginal) => {
@@ -48,7 +48,7 @@ const createEvent = <T>(fixture: EventFixture): T => {
           ...fixture.env,
         },
       },
-      authSession: fixture.auth ? { session: { id: 'session-1' } } : null,
+      authSession: fixture.auth ? { session: { id: 'session-1' }, user: { id: 'user-1', role: 'admin' } } : null,
       body: fixture.body,
       params: fixture.params,
       query: fixture.query,
@@ -115,6 +115,7 @@ describe('MangaDex sync API routes', () => {
       mockGet.mockResolvedValue(null)
 
       const event = createEvent<Parameters<typeof importStatusGetHandler>[0]>({
+        auth: true,
         params: { jobId: 'job-unknown' },
       })
 
@@ -131,6 +132,7 @@ describe('MangaDex sync API routes', () => {
       })
 
       const event = createEvent<Parameters<typeof importStatusGetHandler>[0]>({
+        auth: true,
         params: { jobId: 'job-1' },
       })
 
@@ -147,6 +149,7 @@ describe('MangaDex sync API routes', () => {
       })
 
       const event = createEvent<Parameters<typeof importStatusGetHandler>[0]>({
+        auth: true,
         params: { jobId: 'job-2' },
       })
 
@@ -166,6 +169,7 @@ describe('MangaDex sync API routes', () => {
       })
 
       const event = createEvent<Parameters<typeof importStatusGetHandler>[0]>({
+        auth: true,
         params: { jobId: 'job-3' },
       })
 

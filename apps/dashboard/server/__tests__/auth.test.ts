@@ -5,6 +5,16 @@ import authHandler from '../api/auth/[...]'
 import authMiddleware from '../middleware/auth'
 import type { DashboardAuthSession } from '../utils/auth'
 
+/**
+ * Minimal structural stub matching the fields `authMiddleware` actually reads.
+ * Intersects with `Partial<H3Event>` so a single `as` (not `as unknown as`)
+ * suffices when handing the stub to the middleware.
+ */
+type MiddlewareEventStub = Partial<Parameters<typeof authMiddleware>[0]> & {
+  path: string
+  context: Record<string, unknown>
+}
+
 describe('auth scaffold', () => {
   it('creates Better Auth instance with role additionalFields and drizzle config', async () => {
     const authInstance = createAuth({})
@@ -36,9 +46,9 @@ describe('auth scaffold', () => {
       context: {
         auth: { untouched: true },
       },
-    } as unknown as Parameters<typeof authMiddleware>[0]
+    } as MiddlewareEventStub
 
-    await authMiddleware(event)
+    await authMiddleware(event as Parameters<typeof authMiddleware>[0])
     expect(event.context.auth).toEqual({ untouched: true })
   })
 
@@ -46,9 +56,9 @@ describe('auth scaffold', () => {
     const event = {
       path: '/api/manga',
       context: {},
-    } as unknown as Parameters<typeof authMiddleware>[0]
+    } as MiddlewareEventStub
 
-    await authMiddleware(event)
+    await authMiddleware(event as Parameters<typeof authMiddleware>[0])
 
     const authContext = event.context.auth
     expect(authContext).toBeDefined()

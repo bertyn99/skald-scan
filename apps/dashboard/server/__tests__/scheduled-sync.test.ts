@@ -5,7 +5,8 @@ const { mockSelect, mockFrom, mockWhere, mockOrderBy, mockLimit, mockAll, mockUp
   const limit = vi.fn(() => ({ all }))
   const orderBy = vi.fn(() => ({ limit }))
   const where = vi.fn(() => ({ orderBy }))
-  const from = vi.fn(() => ({ where }))
+  const innerJoin = vi.fn(() => ({ where }))
+  const from = vi.fn(() => ({ innerJoin, where }))
   const select = vi.fn(() => ({ from }))
   const set = vi.fn(() => ({ where: vi.fn() }))
   const update = vi.fn(() => ({ set }))
@@ -26,6 +27,8 @@ vi.mock('drizzle-orm', () => ({
   and: vi.fn((..._args) => 'and'),
   lt: vi.fn((_col, _val) => 'lt'),
   asc: vi.fn((_col) => 'asc'),
+  not: vi.fn((_val) => 'not'),
+  isNull: vi.fn((_col) => 'isNull'),
 }))
 
 vi.mock('@skald-scan/shared', () => ({
@@ -35,6 +38,10 @@ vi.mock('@skald-scan/shared', () => ({
     autoSyncEnabled: 'auto_sync_enabled',
     syncStatus: 'sync_status',
     lastSyncedAt: 'last_synced_at',
+  },
+  manga: {
+    id: 'id',
+    mangaDexId: 'manga_dex_id',
   },
   SyncStatus: { Idle: 'idle', Syncing: 'syncing', Error: 'error' },
 }))

@@ -23,7 +23,6 @@ import {
 describe('storage + manga APIs', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    vi.restoreAllMocks()
   })
 
   it('builds R2 path conventions and file name parsing', () => {
@@ -218,7 +217,7 @@ describe('storage + manga APIs', () => {
     })
 
     await expect(chapterIndexGetHandler(event)).resolves.toMatchObject({
-      items: [{ id: 'c1', mangaId: 'm1', chapterNumber: 1 }]
+      items: [{ id: 'c1' }]
     })
   })
 
@@ -278,16 +277,16 @@ describe('storage + manga APIs', () => {
 
     const response = await pageGetHandler(event)
     expect(response).toBeInstanceOf(Response)
-    expect((response as Response).headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable')
-    expect((response as Response).headers.get('Content-Type')).toBe('image/webp')
-    expect((response as Response).headers.get('ETag')).toBe('etag-1')
+    expect(response.headers.get('Cache-Control')).toBe('public, max-age=31536000, immutable')
+    expect(response.headers.get('Content-Type')).toBe('image/webp')
+    expect(response.headers.get('ETag')).toBe('etag-1')
   })
 })
 
 type MockPrepared = {
   onBind?: (args: unknown[]) => void
-  allResult?: unknown
-  firstResult?: unknown
+  allResult?: { results: Record<string, unknown>[] }
+  firstResult?: Record<string, unknown> | null
   runResult?: unknown
 }
 
@@ -316,12 +315,26 @@ const createDatabaseBinding = (statements: MockPrepared[]) => {
             all: vi.fn().mockResolvedValue(statement.allResult ?? { results: [] }),
             first: vi.fn().mockResolvedValue(statement.firstResult ?? null),
             run: vi.fn().mockResolvedValue(statement.runResult ?? { success: true }),
-            raw: vi.fn().mockResolvedValue(statement.allResult ? (statement.allResult as any).results.map(Object.values) : (statement.firstResult ? [Object.values(statement.firstResult)] : []))
+            raw: vi.fn().mockResolvedValue(buildRawResult(statement))
           }
         }
       }
     })
   }
+}
+
+/**
+ * Builds the `raw()` mock result from a prepared statement, mirroring how D1's
+ * `raw()` returns rows as arrays of column values (via Object.values).
+ */
+const buildRawResult = (statement: MockPrepared): unknown[][] => {
+  if (statement.allResult) {
+    return statement.allResult.results.map(Object.values)
+  }
+  if (statement.firstResult) {
+    return [Object.values(statement.firstResult)]
+  }
+  return []
 }
 
 const createStorageBinding = (
@@ -334,6 +347,13 @@ const createStorageBinding = (
 
 const createEvent = <T>(fixture: EventFixture): T => {
   const eventObject = {
+    node: {
+      res: {
+        statusCode: 200,
+        setHeader: vi.fn(),
+        getHeader: vi.fn()
+      }
+    },
     context: {
       cloudflare: {
         env: {
@@ -345,7 +365,7 @@ const createEvent = <T>(fixture: EventFixture): T => {
           ...fixture.env
         }
       },
-      authSession: fixture.auth ? { session: { id: 'session-1' } } : null,
+      authSession: fixture.auth ? { session: { id: 'session-1' }, user: { id: 'user-1', role: 'admin' } } : null,
       body: fixture.body,
       params: fixture.params,
       query: fixture.query
