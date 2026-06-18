@@ -3,11 +3,10 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam } from 'h3'
 
-import { getDatabaseFromEvent } from '../../../../utils/storage'
-
-type D1Database = Parameters<typeof drizzle>[0]
+import { getDatabaseFromEvent, requireAuthenticatedSession } from '../../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
+  requireAuthenticatedSession(event)
   const jobId = getRouterParam(event, 'jobId')
 
   if (!jobId) {

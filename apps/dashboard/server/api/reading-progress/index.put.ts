@@ -1,20 +1,23 @@
 import { readingProgress } from '@skald-scan/shared'
+import type { UpsertProgressRequest } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
-import type { UpsertProgressRequest } from '@skald-scan/shared'
-
 import {
   getDatabaseFromEvent,
   readEventBody,
-  readEventParam,
   requireAuthenticatedSession
 } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAuthenticatedSession(event)
-  const userId = event.context.authSession!.user!.id
+
+  const userId = event.context.authSession?.user?.id
+  if (!userId) {
+    throw createError({ statusCode: 401, statusMessage: 'Authentication required' })
+  }
+
   const body = await readEventBody<UpsertProgressRequest>(event)
   const { mangaId, chapterId, lastPageRead, read } = body
 
@@ -24,38 +27,47 @@ export default defineEventHandler(async (event) => {
 
   const database = getDatabaseFromEvent(event)
   const db = drizzle(database)
-  const now = Date.now()
 
-  const existing = await db.select({ id: readingProgress.id })
+  // Client-supplied timestamp; default to now so callers without an explicit
+  // updatedAt are treated as fresh (preserves the original behaviour).
+  const clientUpdatedAt = body.updatedAt ?? Date.now()
+
+  // Stale-client guard: if the server already has a newer entry for this
+  // (user, chapter) pair, skip the overwrite entirely. Offline clients with an
+  // older local timestamp must not clobber newer server data.
+  const existing = await db.select({ updatedAt: readingProgress.updatedAt })
     .from(readingProgress)
     .where(and(eq(readingProgress.userId, userId), eq(readingProgress.chapterId, chapterId)))
     .get()
 
-  if (existing) {
-    await db.update(readingProgress)
-      .set({
-        lastPageRead,
-        read,
-        updatedAt: now,
-        lastReadAt: now,
-      })
-      .where(eq(readingProgress.id, existing.id))
-      .run()
-  } else {
-    await db.insert(readingProgress)
-      .values({
-        userId,
-        id: crypto.randomUUID(),
-        mangaId,
-        chapterId,
-        lastPageRead,
-        read,
-        lastReadAt: now,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .run()
+  if (existing && existing.updatedAt !== null && existing.updatedAt > clientUpdatedAt) {
+    return { success: true }
   }
+
+  // Atomic upsert on the (userId, chapterId) unique index. Eliminates the
+  // SELECT-then-INSERT/UPDATE race the previous implementation had.
+  await db.insert(readingProgress)
+    .values({
+      id: crypto.randomUUID(),
+      userId,
+      mangaId,
+      chapterId,
+      lastPageRead,
+      read,
+      lastReadAt: clientUpdatedAt,
+      createdAt: clientUpdatedAt,
+      updatedAt: clientUpdatedAt
+    })
+    .onConflictDoUpdate({
+      target: [readingProgress.userId, readingProgress.chapterId],
+      set: {
+        lastPageRead,
+        read,
+        lastReadAt: clientUpdatedAt,
+        updatedAt: clientUpdatedAt
+      }
+    })
+    .run()
 
   return { success: true }
 })

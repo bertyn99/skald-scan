@@ -6,7 +6,7 @@ import {
   getSyncQueueFromEvent,
   isZipLikeFileName,
   readEventBody,
-  requireAuthenticatedSession,
+  requireAdminRole,
   type ExtractZipQueueMessage
 } from '../../utils/storage'
 
@@ -18,7 +18,7 @@ type UploadZipBody = {
 }
 
 export default defineEventHandler(async (event) => {
-  requireAuthenticatedSession(event)
+  requireAdminRole(event)
 
   const body = await readEventBody<UploadZipBody>(event)
   const mangaId = body.mangaId?.trim()

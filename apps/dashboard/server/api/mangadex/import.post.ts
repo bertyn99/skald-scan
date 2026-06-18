@@ -1,10 +1,11 @@
 import type { TriggerImportRequest, TriggerImportResponse } from '@skald-scan/shared'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, getSyncQueueFromEvent, readEventBody } from '../../utils/storage'
+import { getDatabaseFromEvent, getSyncQueueFromEvent, readEventBody, requireAdminRole } from '../../utils/storage'
 import { dispatchSyncQueueMessage } from '../../utils/sync-queue'
 
 export default defineEventHandler(async (event): Promise<TriggerImportResponse> => {
+  requireAdminRole(event)
   const body = await readEventBody<TriggerImportRequest>(event)
 
   if (!body?.mangaDexId || typeof body.mangaDexId !== 'string') {

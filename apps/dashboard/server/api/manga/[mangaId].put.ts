@@ -7,7 +7,7 @@ import {
   getDatabaseFromEvent,
   readEventBody,
   readEventParam,
-  requireAuthenticatedSession
+  requireAdminRole
 } from '../../utils/storage'
 
 type UpdateMangaBody = {
@@ -21,7 +21,7 @@ type UpdateMangaBody = {
 }
 
 export default defineEventHandler(async (event) => {
-  requireAuthenticatedSession(event)
+  requireAdminRole(event)
 
   const mangaId = readEventParam(event, 'mangaId')
   if (!mangaId) {
@@ -91,6 +91,3 @@ const normalizeNullableText = (value: string | null | undefined): string | null 
 
   return normalized.length > 0 ? normalized : null
 }
-
-const toDatabaseColumn = (camelCase: string): string =>
-  camelCase.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`)

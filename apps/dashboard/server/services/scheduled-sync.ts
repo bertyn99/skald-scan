@@ -1,12 +1,14 @@
-import { mangaDexSync } from '@skald-scan/shared'
+import { manga, mangaDexSync } from '@skald-scan/shared'
 import { SyncStatus } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { eq, and, lt, asc } from 'drizzle-orm'
+import { and, asc, eq, isNull, lt, not } from 'drizzle-orm'
+
+import type { SyncQueueMessage } from '../utils/storage'
 
 type D1Database = Parameters<typeof drizzle>[0]
 
 interface QueueBinding {
-  send: (message: unknown) => Promise<void>
+  send: (message: SyncQueueMessage) => Promise<void>
 }
 
 const MAX_MANGA_PER_RUN = 5
@@ -19,19 +21,28 @@ export async function handleScheduledSync(
 
   const cutoff = Date.now() - SYNC_INTERVAL_MS
 
-  const due = await db.select({
+  const dueRaw = await db.select({
     id: mangaDexSync.id,
     mangaId: mangaDexSync.mangaId,
+    mangaDexId: manga.mangaDexId,
   })
     .from(mangaDexSync)
+    .innerJoin(manga, eq(mangaDexSync.mangaId, manga.id))
     .where(and(
       eq(mangaDexSync.autoSyncEnabled, true),
       eq(mangaDexSync.syncStatus, SyncStatus.Idle),
       lt(mangaDexSync.lastSyncedAt, cutoff),
+      not(isNull(manga.mangaDexId)),
     ))
     .orderBy(asc(mangaDexSync.lastSyncedAt))
     .limit(MAX_MANGA_PER_RUN)
     .all()
+
+  const due = dueRaw.filter((record): record is {
+    id: string
+    mangaId: string
+    mangaDexId: string
+  } => record.mangaDexId !== null)
 
   if (due.length === 0) {
     return { synced: 0, queued: 0 }
@@ -46,7 +57,7 @@ export async function handleScheduledSync(
       jobId: crypto.randomUUID(),
       mangaId: record.mangaId,
       type: 'sync-chapters',
-      mangaDexId: record.mangaId,
+      mangaDexId: record.mangaDexId,
     })
   }
 

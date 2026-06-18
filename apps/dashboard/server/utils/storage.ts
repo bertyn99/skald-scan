@@ -1,6 +1,7 @@
+import { processedJobs } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
+import { eq } from 'drizzle-orm'
 import { createError, getQuery, getRouterParam, readBody, type H3Event } from 'h3'
-
 type D1Binding = Parameters<typeof drizzle>[0]
 
 export type ExtractZipQueueMessage = {
@@ -224,3 +225,67 @@ export const readEventParam = (event: H3Event, name: string): string | undefined
 }
 
 const sanitizePathSegment = (value: string): string => value.trim().replaceAll('/', '-')
+
+/**
+ * Returns true if the job has NOT been processed yet (and marks it as 'processing').
+ * Returns false if the job was already completed or is currently being processed.
+ *
+ * Used by import-manga.ts, sync-chapters.ts, download-pages.ts (migrate when safe).
+ */
+export const claimQueueJob = async (
+  database: D1Binding,
+  jobId: string
+): Promise<boolean> => {
+  const db = drizzle(database)
+  const existing = await db.select({ jobId: processedJobs.jobId })
+    .from(processedJobs)
+    .where(eq(processedJobs.jobId, jobId))
+    .get()
+  if (existing) {
+    return false
+  }
+
+  await db.insert(processedJobs).values({
+    jobId,
+    status: 'processing',
+  })
+  return true
+}
+
+/**
+ * Marks a queue job as completed with optional metadata.
+ *
+ * Used by import-manga.ts, sync-chapters.ts, download-pages.ts (migrate when safe).
+ */
+export const completeQueueJob = async (
+  database: D1Binding,
+  jobId: string,
+  metadata?: Record<string, unknown>
+): Promise<void> => {
+  const db = drizzle(database)
+  await db.update(processedJobs)
+    .set({
+      status: 'completed',
+      metadata: metadata ? JSON.stringify(metadata) : null
+    })
+    .where(eq(processedJobs.jobId, jobId))
+}
+
+/**
+ * Marks a queue job as failed, recording the error in metadata.
+ *
+ * Used by import-manga.ts, sync-chapters.ts, download-pages.ts (migrate when safe).
+ */
+export const failQueueJob = async (
+  database: D1Binding,
+  jobId: string,
+  error: unknown
+): Promise<void> => {
+  const db = drizzle(database)
+  await db.update(processedJobs)
+    .set({
+      status: 'failed',
+      metadata: JSON.stringify({ error: String(error) })
+    })
+    .where(eq(processedJobs.jobId, jobId))
+}

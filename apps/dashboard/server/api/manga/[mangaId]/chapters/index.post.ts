@@ -6,7 +6,7 @@ import {
   getDatabaseFromEvent,
   readEventBody,
   readEventParam,
-  requireAuthenticatedSession
+  requireAdminRole
 } from '../../../../utils/storage'
 
 type CreateChapterBody = {
@@ -18,7 +18,7 @@ type CreateChapterBody = {
 }
 
 export default defineEventHandler(async (event) => {
-  requireAuthenticatedSession(event)
+  requireAdminRole(event)
 
   const mangaId = readEventParam(event, 'mangaId')
   if (!mangaId) {

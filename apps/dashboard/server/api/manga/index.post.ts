@@ -3,7 +3,7 @@ import { MangaStatus } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventBody, requireAuthenticatedSession } from '../../utils/storage'
+import { getDatabaseFromEvent, readEventBody, requireAdminRole } from '../../utils/storage'
 
 type CreateMangaBody = {
   title?: string
@@ -15,7 +15,7 @@ type CreateMangaBody = {
 }
 
 export default defineEventHandler(async (event) => {
-  requireAuthenticatedSession(event)
+  requireAdminRole(event)
 
   const body = await readEventBody<CreateMangaBody>(event)
   const title = body.title?.trim()

@@ -4,7 +4,7 @@ import {
   generateR2UploadPresignedUrl,
   getStorageFromEvent,
   readEventBody,
-  requireAuthenticatedSession,
+  requireAdminRole,
   resolvePageR2KeyFromFileName
 } from '../../utils/storage'
 
@@ -15,7 +15,7 @@ type UploadUrlBody = {
 }
 
 export default defineEventHandler(async (event) => {
-  requireAuthenticatedSession(event)
+  requireAdminRole(event)
 
   const body = await readEventBody<UploadUrlBody>(event)
   const mangaId = body.mangaId?.trim()

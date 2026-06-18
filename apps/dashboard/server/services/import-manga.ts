@@ -1,10 +1,11 @@
-import { chapters, manga, mangaDexSync, processedJobs } from '@skald-scan/shared'
+import { chapters, manga, mangaDexSync } from '@skald-scan/shared'
 import type { MangaDexClient, MangaDexManga } from '@skald-scan/shared'
 import { buildMangaDexCoverUrl, MangaStatus, SyncStatus } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 
 import { dispatchSyncQueueMessage, type SyncQueueRuntimeEnv } from '../utils/sync-queue'
+import { claimQueueJob, completeQueueJob, failQueueJob } from '../utils/storage'
 
 interface ImportMangaMessage {
   jobId: string
@@ -17,21 +18,11 @@ export async function handleImportManga(
   env: SyncQueueRuntimeEnv,
   client: MangaDexClient,
 ): Promise<void> {
-  const db = drizzle(env.DB)
-
-  const existing = await db.select({ jobId: processedJobs.jobId })
-    .from(processedJobs)
-    .where(eq(processedJobs.jobId, message.jobId))
-    .get()
-
-  if (existing) {
+  if (!(await claimQueueJob(env.DB, message.jobId))) {
     return
   }
 
-  await db.insert(processedJobs).values({
-    jobId: message.jobId,
-    status: 'processing',
-  })
+  const db = drizzle(env.DB)
 
   try {
     const response = await client.getManga(message.mangaDexId)
@@ -133,13 +124,9 @@ export async function handleImportManga(
         .where(eq(mangaDexSync.mangaId, mangaId))
     }
 
-    await db.update(processedJobs)
-      .set({ status: 'completed' })
-      .where(eq(processedJobs.jobId, message.jobId))
+    await completeQueueJob(env.DB, message.jobId)
   } catch (error) {
-    await db.update(processedJobs)
-      .set({ status: 'failed', metadata: JSON.stringify({ error: String(error) }) })
-      .where(eq(processedJobs.jobId, message.jobId))
+    await failQueueJob(env.DB, message.jobId, error)
     throw error
   }
 }

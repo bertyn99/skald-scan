@@ -1,7 +1,8 @@
-import { pages, processedJobs } from '@skald-scan/shared'
+import { pages } from '@skald-scan/shared'
 import type { MangaDexClient } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { eq } from 'drizzle-orm'
+
+import { claimQueueJob, completeQueueJob, failQueueJob } from '../utils/storage'
 
 type D1Database = Parameters<typeof drizzle>[0]
 
@@ -18,21 +19,11 @@ export async function handleDownloadPages(
   env: { DB: D1Database },
   client: MangaDexClient,
 ): Promise<void> {
-  const db = drizzle(env.DB)
-
-  const existing = await db.select({ jobId: processedJobs.jobId })
-    .from(processedJobs)
-    .where(eq(processedJobs.jobId, message.jobId))
-    .get()
-
-  if (existing) {
+  if (!(await claimQueueJob(env.DB, message.jobId))) {
     return
   }
 
-  await db.insert(processedJobs).values({
-    jobId: message.jobId,
-    status: 'processing',
-  })
+  const db = drizzle(env.DB)
 
   try {
     const pagesData = await client.getChapterPages(message.mangaDexChapterId)
@@ -46,17 +37,16 @@ export async function handleDownloadPages(
       createdAt: Date.now(),
     }))
 
-    for (const pv of pageValues) {
-      await db.insert(pages).values(pv).onConflictDoNothing()
+    // Chunk into batches to respect D1 parameter limits
+    const CHUNK_SIZE = 10
+    for (let i = 0; i < pageValues.length; i += CHUNK_SIZE) {
+      const chunk = pageValues.slice(i, i + CHUNK_SIZE)
+      await db.insert(pages).values(chunk).onConflictDoNothing()
     }
 
-    await db.update(processedJobs)
-      .set({ status: 'completed', metadata: JSON.stringify({ pagesCount: pagesData.length }) })
-      .where(eq(processedJobs.jobId, message.jobId))
+    await completeQueueJob(env.DB, message.jobId, { pagesCount: pagesData.length })
   } catch (error) {
-    await db.update(processedJobs)
-      .set({ status: 'failed', metadata: JSON.stringify({ error: String(error) }) })
-      .where(eq(processedJobs.jobId, message.jobId))
+    await failQueueJob(env.DB, message.jobId, error)
     console.error(JSON.stringify({
       level: 'error',
       message: 'Page download job failed',
@@ -64,5 +54,6 @@ export async function handleDownloadPages(
       chapterId: message.chapterId,
       error: String(error),
     }))
+    throw error
   }
 }
