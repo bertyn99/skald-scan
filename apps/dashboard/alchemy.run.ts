@@ -12,6 +12,14 @@ export const dashboard = await Nuxt("dashboard", {
     SESSIONS: sessions,
     SYNC_QUEUE: syncQueue,
   },
+  eventSources: [{
+    queue: syncQueue,
+    settings: {
+      batchSize: 5,
+      maxConcurrency: 5,
+      maxRetries: 3,
+    },
+  }],
   dev: {
     command: "pnpm exec nuxt dev --port 3000",
   },

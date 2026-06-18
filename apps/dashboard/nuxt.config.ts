@@ -2,16 +2,24 @@ import alchemy from "alchemy/cloudflare/nuxt";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  modules: ["@nuxt/eslint", "@nuxt/ui", "@nuxt/image"],
+  modules: ["@nuxt/eslint", "@nuxt/ui", "@nuxt/image", "evlog/nuxt"],
 
   image: {
     domains: ["uploads.mangadex.org"],
     provider: "none",
   },
 
+  evlog: {
+    env: { service: "skald-scan-dashboard" },
+    include: ["/api/**"],
+  },
+
   nitro: {
     preset: "cloudflare_module",
     cloudflare: alchemy(),
+    scheduledTasks: {
+      "*/30 * * * *": ["sync-chapters"],
+    },
   },
 
   devtools: {

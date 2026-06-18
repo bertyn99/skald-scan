@@ -25,3 +25,8 @@ logs
 
 # Turborepo cache
 .turbo/cache
+
+# Agent + runtime state
+.alchemy/miniflare/
+.omo/run-continuation/
+**/bertyn

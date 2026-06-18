@@ -20,8 +20,13 @@ export const sessions = await KVNamespace("skald-sessions", {
   title: `skald-scan-${app.stage}-sessions`,
 });
 
+export const syncDlq = await Queue("skald-sync-dlq", {
+  name: `skald-scan-${app.stage}-sync-dlq`,
+});
+
 export const syncQueue = await Queue("skald-sync-queue", {
   name: `skald-scan-${app.stage}-sync-queue`,
+  dlq: syncDlq,
 });
 
 await app.finalize();
