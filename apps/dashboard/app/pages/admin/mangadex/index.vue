@@ -199,9 +199,7 @@ async function triggerImport(manga: MangaDexResult) {
       body: { mangaDexId: manga.id },
     })
 
-    const message = existingManga
-      ? `Already in library — chapter sync retried (job ${jobId.slice(0, 8)}).`
-      : `Import complete (job ${jobId.slice(0, 8)}). Check your library.`
+    const message = `Import complete (job ${jobId.slice(0, 8)}). Check your library.`
     importStatus.value = {
       title: manga.title,
       message,

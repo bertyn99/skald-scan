@@ -1,7 +1,7 @@
 import { pages } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { eq, and, asc } from 'drizzle-orm'
-import { createError, defineEventHandler, setHeader } from 'h3'
+import { eq, asc } from 'drizzle-orm'
+import { createError, defineEventHandler } from 'h3'
 
 import {
   buildPageR2Key,
@@ -9,6 +9,42 @@ import {
   getStorageFromEvent,
   readEventParam
 } from '../../../../../utils/storage'
+
+// CRC32 lookup table
+const CRC_TABLE = (() => {
+  const table = new Uint32Array(256)
+  for (let i = 0; i < 256; i++) {
+    let c = i
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    }
+    table[i] = c
+  }
+  return table
+})()
+
+function crc32(data: Uint8Array): number {
+  let crc = 0xffffffff
+  for (let i = 0; i < data.length; i++) {
+    crc = (CRC_TABLE[(crc ^ (data[i] ?? 0)) & 0xff] ?? 0) ^ (crc >>> 8)
+  }
+  return (crc ^ 0xffffffff) >>> 0
+}
+
+function writeUint16(view: DataView, offset: number, value: number): void {
+  view.setUint16(offset, value, true)
+}
+
+function writeUint32(view: DataView, offset: number, value: number): void {
+  view.setUint32(offset, value, true)
+}
+
+type CentralDirectoryEntry = {
+  nameBytes: Uint8Array
+  crc: number
+  size: number
+  offset: number
+}
 
 export default defineEventHandler(async (event) => {
   const mangaId = readEventParam(event, 'mangaId')
@@ -32,130 +68,116 @@ export default defineEventHandler(async (event) => {
 
   const storage = getStorageFromEvent(event)
 
-  // Build CBZ (ZIP) file in memory using minimal ZIP structure
-  const files: { name: string; data: Uint8Array }[] = []
-
-  for (const record of pageRecords) {
-    const key = record.r2Key || buildPageR2Key(mangaId, chapterId, record.pageNumber)
-    const object = await storage.get(key)
-    if (!object?.body) continue
-
-    const arrayBuf = await new Response(object.body).arrayBuffer()
-    files.push({
-      name: String(record.pageNumber).padStart(3, '0') + '.webp',
-      data: new Uint8Array(arrayBuf),
-    })
-  }
-
-  if (files.length === 0) {
-    throw createError({ statusCode: 404, statusMessage: 'No page images could be loaded' })
-  }
-
-  const zipBuffer = buildZip(files)
-
-  setHeader(event, 'Content-Type', 'application/vnd.comicbook+zip')
-  setHeader(event, 'Content-Disposition', `attachment; filename="${chapterId}.cbz"`)
-  setHeader(event, 'Cache-Control', 'private, max-age=3600')
-
-  return zipBuffer
-})
-
-// Minimal ZIP file builder — no external dependency needed
-function buildZip(files: { name: string; data: Uint8Array }[]): Uint8Array {
+  // Stream the ZIP: fetch and emit ONE page at a time so peak memory stays at
+  // roughly one page (~2MB) rather than buffering every page + the full ZIP.
   const encoder = new TextEncoder()
-  const localHeaders: Uint8Array[] = []
-  const centralHeaders: Uint8Array[] = []
-  let offset = 0
+  const centralDirectory: CentralDirectoryEntry[] = []
+  let localOffset = 0
+  let emittedFiles = 0
 
-  for (const file of files) {
-    const nameBytes = encoder.encode(file.name)
-    const localHeader = new Uint8Array(30 + nameBytes.length + file.data.length)
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for (const record of pageRecords) {
+          const key = record.r2Key || buildPageR2Key(mangaId, chapterId, record.pageNumber)
+          const object = await storage.get(key)
+          if (!object?.body) continue
 
-    // Local file header signature
-    const view = new DataView(localHeader.buffer)
-    view.setUint32(0, 0x04034b50, true) // signature
-    view.setUint16(4, 20, true) // version needed
-    view.setUint16(6, 0, true) // flags
-    view.setUint16(8, 0, true) // compression (stored)
-    view.setUint16(10, 0, true) // mod time
-    view.setUint16(12, 0, true) // mod date
-    view.setUint32(14, crc32(file.data), true) // crc32
-    view.setUint32(18, file.data.length, true) // compressed size
-    view.setUint32(22, file.data.length, true) // uncompressed size
-    view.setUint16(26, nameBytes.length, true) // filename length
-    view.setUint16(28, 0, true) // extra field length
+          // Hold only this single page in memory while writing it out.
+          const pageBuffer = new Uint8Array(await new Response(object.body).arrayBuffer())
+          const crc = crc32(pageBuffer)
+          const name = `${String(record.pageNumber).padStart(3, '0')}.webp`
+          const nameBytes = encoder.encode(name)
 
-    localHeader.set(nameBytes, 30)
-    localHeader.set(file.data, 30 + nameBytes.length)
+          // Local file header (30 bytes + filename)
+          const header = new Uint8Array(30 + nameBytes.length)
+          const view = new DataView(header.buffer)
+          writeUint32(view, 0, 0x04034b50) // local file header signature
+          writeUint16(view, 4, 20) // version needed
+          writeUint16(view, 6, 0) // general purpose flag
+          writeUint16(view, 8, 0) // compression (stored)
+          writeUint16(view, 10, 0) // last mod time
+          writeUint16(view, 12, 0) // last mod date
+          writeUint32(view, 14, crc) // CRC-32
+          writeUint32(view, 18, pageBuffer.length) // compressed size
+          writeUint32(view, 22, pageBuffer.length) // uncompressed size
+          writeUint16(view, 26, nameBytes.length) // filename length
+          writeUint16(view, 28, 0) // extra field length
+          header.set(nameBytes, 30)
 
-    localHeaders.push(localHeader)
+          controller.enqueue(header)
+          controller.enqueue(pageBuffer)
 
-    // Central directory entry
-    const centralEntry = new Uint8Array(46 + nameBytes.length)
-    const cview = new DataView(centralEntry.buffer)
-    cview.setUint32(0, 0x02014b50, true) // signature
-    cview.setUint16(4, 20, true) // version made by
-    cview.setUint16(6, 20, true) // version needed
-    cview.setUint16(8, 0, true) // flags
-    cview.setUint16(10, 0, true) // compression
-    cview.setUint16(12, 0, true) // mod time
-    cview.setUint16(14, 0, true) // mod date
-    cview.setUint32(16, crc32(file.data), true) // crc32
-    cview.setUint32(20, file.data.length, true) // compressed size
-    cview.setUint32(24, file.data.length, true) // uncompressed size
-    cview.setUint16(28, nameBytes.length, true) // filename length
-    cview.setUint16(30, 0, true) // extra field length
-    cview.setUint16(32, 0, true) // comment length
-    cview.setUint16(34, 0, true) // disk number
-    cview.setUint16(36, 0, true) // internal attrs
-    cview.setUint32(38, 0, true) // external attrs
-    cview.setUint32(42, offset, true) // local header offset
+          centralDirectory.push({
+            nameBytes,
+            crc,
+            size: pageBuffer.length,
+            offset: localOffset
+          })
+          localOffset += header.length + pageBuffer.length
+          emittedFiles += 1
+        }
 
-    centralEntry.set(nameBytes, 46)
-    centralHeaders.push(centralEntry)
+        if (emittedFiles === 0) {
+          throw createError({ statusCode: 404, statusMessage: 'No page images could be loaded' })
+        }
 
-    offset += localHeader.length
-  }
+        // Central directory
+        const centralOffset = localOffset
+        let centralSize = 0
 
-  const centralOffset = offset
-  let centralSize = 0
-  for (const c of centralHeaders) centralSize += c.length
+        for (const entry of centralDirectory) {
+          const cdHeader = new Uint8Array(46 + entry.nameBytes.length)
+          const view = new DataView(cdHeader.buffer)
+          writeUint32(view, 0, 0x02014b50) // central directory signature
+          writeUint16(view, 4, 20) // version made by
+          writeUint16(view, 6, 20) // version needed
+          writeUint16(view, 8, 0) // general purpose flag
+          writeUint16(view, 10, 0) // compression (stored)
+          writeUint16(view, 12, 0) // last mod time
+          writeUint16(view, 14, 0) // last mod date
+          writeUint32(view, 16, entry.crc) // CRC-32
+          writeUint32(view, 20, entry.size) // compressed size
+          writeUint32(view, 24, entry.size) // uncompressed size
+          writeUint16(view, 28, entry.nameBytes.length) // filename length
+          writeUint16(view, 30, 0) // extra field length
+          writeUint16(view, 32, 0) // file comment length
+          writeUint16(view, 34, 0) // disk number start
+          writeUint16(view, 36, 0) // internal file attributes
+          writeUint32(view, 38, 0) // external file attributes
+          writeUint32(view, 42, entry.offset) // local header offset
+          cdHeader.set(entry.nameBytes, 46)
 
-  // End of central directory
-  const eocd = new Uint8Array(22)
-  const eocdView = new DataView(eocd.buffer)
-  eocdView.setUint32(0, 0x06054b50, true) // signature
-  eocdView.setUint16(4, 0, true) // disk number
-  eocdView.setUint16(6, 0, true) // central dir disk
-  eocdView.setUint16(8, files.length, true) // entries on disk
-  eocdView.setUint16(10, files.length, true) // total entries
-  eocdView.setUint32(12, centralSize, true) // central dir size
-  eocdView.setUint32(16, centralOffset, true) // central dir offset
-  eocdView.setUint16(20, 0, true) // comment length
+          controller.enqueue(cdHeader)
+          centralSize += cdHeader.length
+        }
 
-  const totalSize = offset + centralSize + 22
-  const result = new Uint8Array(totalSize)
-  let pos = 0
-  for (const lh of localHeaders) {
-    result.set(lh, pos)
-    pos += lh.length
-  }
-  for (const ch of centralHeaders) {
-    result.set(ch, pos)
-    pos += ch.length
-  }
-  result.set(eocd, pos)
+        // End of central directory record (22 bytes)
+        const eocd = new Uint8Array(22)
+        const eocdView = new DataView(eocd.buffer)
+        writeUint32(eocdView, 0, 0x06054b50) // EOCD signature
+        writeUint16(eocdView, 4, 0) // disk number
+        writeUint16(eocdView, 6, 0) // disk with CD start
+        writeUint16(eocdView, 8, centralDirectory.length) // entries on this disk
+        writeUint16(eocdView, 10, centralDirectory.length) // total entries
+        writeUint32(eocdView, 12, centralSize) // central directory size
+        writeUint32(eocdView, 16, centralOffset) // central directory offset
+        writeUint16(eocdView, 20, 0) // comment length
 
-  return result
-}
-
-function crc32(data: Uint8Array): number {
-  let crc = 0xFFFFFFFF
-  for (let i = 0; i < data.length; i++) {
-    crc ^= data[i] ?? 0
-    for (let j = 0; j < 8; j++) {
-      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0)
+        controller.enqueue(eocd)
+        controller.close()
+      } catch (error) {
+        controller.error(error instanceof Error ? error : new Error(String(error)))
+      }
     }
-  }
-  return (crc ^ 0xFFFFFFFF) >>> 0
-}
+  })
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/vnd.comicbook+zip',
+      'Content-Disposition': `attachment; filename="${chapterId}.cbz"`,
+      'Cache-Control': 'private, max-age=3600'
+    }
+  })
+})

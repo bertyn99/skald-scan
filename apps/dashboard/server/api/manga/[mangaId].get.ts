@@ -1,7 +1,7 @@
 import { chapters, manga } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq, asc } from 'drizzle-orm'
-import { createError, defineEventHandler } from 'h3'
+import { createError, defineEventHandler, setResponseHeader } from 'h3'
 
 import { getDatabaseFromEvent, readEventParam } from '../../utils/storage'
 
@@ -48,6 +48,8 @@ export default defineEventHandler(async (event) => {
   .where(eq(chapters.mangaId, mangaId))
   .orderBy(asc(chapters.chapterNumber))
   .all()
+
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
 
   return {
     manga: {

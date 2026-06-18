@@ -1,7 +1,7 @@
 import { chapters } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq, asc } from 'drizzle-orm'
-import { createError, defineEventHandler } from 'h3'
+import { createError, defineEventHandler, setResponseHeader } from 'h3'
 
 import { getDatabaseFromEvent, readEventParam } from '../../../../utils/storage'
 
@@ -15,11 +15,20 @@ export default defineEventHandler(async (event) => {
   const database = getDatabaseFromEvent(event)
   const db = drizzle(database)
 
-  const items = await db.select()
-  .from(chapters)
-  .where(eq(chapters.mangaId, mangaId))
-  .orderBy(asc(chapters.chapterNumber))
-  .all()
+  const items = await db.select({
+    id: chapters.id,
+    title: chapters.title,
+    chapterNumber: chapters.chapterNumber,
+    pagesCount: chapters.pagesCount,
+    status: chapters.status,
+    createdAt: chapters.createdAt
+  })
+    .from(chapters)
+    .where(eq(chapters.mangaId, mangaId))
+    .orderBy(asc(chapters.chapterNumber))
+    .all()
+
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
 
   return {
     items

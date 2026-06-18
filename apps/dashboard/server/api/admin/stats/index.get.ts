@@ -1,7 +1,7 @@
-import { manga, chapters, users } from '@skald-scan/shared'
+import { chapters, manga, pages, sessions, users } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { count, sql } from 'drizzle-orm'
-import { defineEventHandler } from 'h3'
+import { count, gt, sql } from 'drizzle-orm'
+import { defineEventHandler, setResponseHeader } from 'h3'
 
 import { getDatabaseFromEvent, requireAdminRole } from '../../../utils/storage'
 
@@ -11,15 +11,34 @@ export default defineEventHandler(async (event) => {
   const database = getDatabaseFromEvent(event)
   const db = drizzle(database)
 
-  const [mangaCount, chapterCount, userCount] = await Promise.all([
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+
+  const [
+    mangaCount,
+    chapterCount,
+    userCount,
+    activeUsersCount,
+    storageSum,
+  ] = await Promise.all([
     db.select({ count: count() }).from(manga).get(),
     db.select({ count: count() }).from(chapters).get(),
     db.select({ count: count() }).from(users).get(),
+    db.select({ count: sql<number>`count(distinct ${sessions.userId})` })
+      .from(sessions)
+      .where(gt(sessions.expiresAt, sevenDaysAgo))
+      .get(),
+    db.select({ total: sql<number>`coalesce(sum(${pages.fileSize}), 0)` })
+      .from(pages)
+      .get(),
   ])
+
+  setResponseHeader(event, 'Cache-Control', 'private, max-age=30, stale-while-revalidate=60')
 
   return {
     totalManga: mangaCount?.count ?? 0,
     totalChapters: chapterCount?.count ?? 0,
     totalUsers: userCount?.count ?? 0,
+    activeUsers: activeUsersCount?.count ?? 0,
+    totalStorageBytes: storageSum?.total ?? 0,
   }
 })
