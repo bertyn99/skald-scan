@@ -1,4 +1,4 @@
-import type { MangaStatus, ChapterStatus, Language } from './constants';
+import type { MangaStatus, ChapterStatus, Language, SyncStatus } from './constants';
 
 // GET /api/manga
 export interface MangaListResponse {
@@ -52,6 +52,7 @@ export interface UpsertProgressRequest {
   chapterId: string;
   lastPageRead: number;
   read: boolean;
+  updatedAt?: number;
 }
 
 // POST /api/mangadex/import
@@ -67,4 +68,18 @@ export interface ImportStatusResponse {
   status: 'queued' | 'processing' | 'completed' | 'failed';
   progress?: { chapters: number; pages: number };
   error?: string;
+}
+
+// Chapter import statistics for UI display
+export interface ChapterImportStats {
+  importing: number;
+  total: number;
+  imported: number;
+}
+
+// MangaDex sync status info for UI display
+export interface MangaSyncInfo {
+  status: SyncStatus;
+  lastSyncedAt: number | null;
+  lastError: string | null;
 }

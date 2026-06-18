@@ -165,6 +165,7 @@ export const mangaDexSync = sqliteTable(
     syncStatus: text('sync_status').default(SyncStatus.Idle),
     autoSyncEnabled: integer('auto_sync_enabled', { mode: 'boolean' }).default(true),
     lastError: text('last_error'),
+    remoteChapterCount: integer('remote_chapter_count'),
     createdAt: integer('created_at'),
     updatedAt: integer('updated_at'),
   },
