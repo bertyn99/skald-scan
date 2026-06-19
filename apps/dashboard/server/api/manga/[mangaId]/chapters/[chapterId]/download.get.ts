@@ -1,11 +1,10 @@
 import { pages } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq, asc } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
 import {
   buildPageR2Key,
-  getDatabaseFromEvent,
+  useDrizzle,
   getStorageFromEvent,
   readEventParam
 } from '../../../../../utils/storage'
@@ -54,8 +53,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'mangaId and chapterId are required' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
   const pageRecords = await db.select({ pageNumber: pages.pageNumber, r2Key: pages.r2Key })
     .from(pages)
     .where(eq(pages.chapterId, chapterId))

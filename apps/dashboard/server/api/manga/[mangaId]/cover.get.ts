@@ -1,11 +1,10 @@
 import { manga } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 
 import {
   buildCoverR2Key,
-  getDatabaseFromEvent,
+  useDrizzle,
   getStorageFromEvent,
   readEventParam
 } from '../../../utils/storage'
@@ -38,8 +37,7 @@ export default defineEventHandler(async (event) => {
 
   const object = await storage.get(objectKey)
   if (!object?.body) {
-    const database = getDatabaseFromEvent(event)
-    const db = drizzle(database)
+    const db = useDrizzle(event)
     const record = await db.select({ coverUrl: manga.coverUrl })
       .from(manga)
       .where(eq(manga.id, mangaId))

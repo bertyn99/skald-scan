@@ -1,9 +1,8 @@
 import { processedJobs } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler, getRouterParam } from 'h3'
 
-import { getDatabaseFromEvent, requireAdminRole } from '../../../../utils/storage'
+import { useDrizzle, requireAdminRole } from '../../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAdminRole(event)
@@ -13,8 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'jobId is required' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   const job = await db.select({
     jobId: processedJobs.jobId,

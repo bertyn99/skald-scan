@@ -1,13 +1,12 @@
 import { pages } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq, and } from 'drizzle-orm'
 import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 
 import {
   buildPageR2Key,
-  getDatabaseFromEvent,
   getStorageFromEvent,
-  readEventParam
+  readEventParam,
+  useDrizzle
 } from '../../../../../../utils/storage'
 import { buildResizeOptions, buildVariantR2Key, imageResponseHeaders } from '../../../../../../utils/image-optimization'
 
@@ -28,8 +27,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'pageId must be a positive number' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
   const pageRecord = await db.select({ r2Key: pages.r2Key, imageUrl: pages.imageUrl })
     .from(pages)
     .where(and(eq(pages.chapterId, chapterId), eq(pages.pageNumber, pageNumber)))

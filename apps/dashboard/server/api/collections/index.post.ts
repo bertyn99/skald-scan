@@ -1,8 +1,7 @@
 import { collections } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventBody, requireAuthenticatedSession } from '../../utils/storage'
+import { useDrizzle, readEventBody, requireAuthenticatedSession } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAuthenticatedSession(event)
@@ -19,8 +18,7 @@ export default defineEventHandler(async (event) => {
 
   const now = Date.now()
   const id = crypto.randomUUID()
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   await db.insert(collections).values({
     id,

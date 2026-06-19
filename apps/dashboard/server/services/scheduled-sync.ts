@@ -1,11 +1,9 @@
 import { manga, mangaDexSync } from '@skald-scan/shared'
 import { SyncStatus } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { and, asc, eq, isNull, lt, not, or } from 'drizzle-orm'
 
 import type { SyncQueueMessage } from '../utils/storage'
-
-type D1Database = Parameters<typeof drizzle>[0]
+import { type D1Binding, useDrizzle } from '../utils/drizzle'
 
 interface QueueBinding {
   send: (message: SyncQueueMessage) => Promise<void>
@@ -15,9 +13,9 @@ const MAX_MANGA_PER_RUN = 5
 const SYNC_INTERVAL_MS = 30 * 60 * 1000 // 30 minutes
 
 export async function handleScheduledSync(
-  env: { DB: D1Database; SYNC_QUEUE: QueueBinding },
+  env: { DB: D1Binding; SYNC_QUEUE: QueueBinding },
 ): Promise<{ synced: number; queued: number }> {
-  const db = drizzle(env.DB)
+  const db = useDrizzle(env.DB)
 
   const cutoff = Date.now() - SYNC_INTERVAL_MS
 

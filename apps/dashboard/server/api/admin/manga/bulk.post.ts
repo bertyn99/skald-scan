@@ -1,11 +1,11 @@
 import { manga, mangaDexSync } from '@skald-scan/shared'
 import { SyncStatus } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq, inArray } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
 import {
   getDatabaseFromEvent,
+  useDrizzle,
   getStorageFromEvent,
   getSyncQueueFromEvent,
   readEventBody,
@@ -29,8 +29,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'action and mangaIds are required' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
   const now = Date.now()
 
   if (action === 'delete') {
@@ -62,7 +61,7 @@ export default defineEventHandler(async (event) => {
 
       await dispatchSyncQueueMessage(
         {
-          DB: database,
+          DB: getDatabaseFromEvent(event),
           STORAGE: getStorageFromEvent(event),
           SYNC_QUEUE: getSyncQueueFromEvent(event)
         },

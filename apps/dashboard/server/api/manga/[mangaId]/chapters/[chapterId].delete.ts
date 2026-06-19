@@ -1,10 +1,9 @@
 import { chapters } from '@skald-scan/shared'
 import { ChapterStatus } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventParam, requireAdminRole } from '../../../../utils/storage'
+import { useDrizzle, readEventParam, requireAdminRole } from '../../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAdminRole(event)
@@ -15,8 +14,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'mangaId and chapterId are required' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   await db.update(chapters)
     .set({ status: ChapterStatus.Unavailable, updatedAt: Date.now() })

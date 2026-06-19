@@ -1,15 +1,13 @@
 import { chapters, manga, pages, sessions, users } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { count, gt, isNull, sql } from 'drizzle-orm'
 import { defineEventHandler, setResponseHeader } from 'h3'
 
-import { getDatabaseFromEvent, requireAdminRole } from '../../../utils/storage'
+import { useDrizzle, requireAdminRole } from '../../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAdminRole(event)
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
 

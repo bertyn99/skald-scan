@@ -1,9 +1,8 @@
 import { chapters } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { createError, defineEventHandler } from 'h3'
 
 import {
-  getDatabaseFromEvent,
+  useDrizzle,
   readEventBody,
   readEventParam,
   requireAdminRole
@@ -44,8 +43,7 @@ export default defineEventHandler(async (event) => {
     updatedAt: now
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
   await db.insert(chapters).values({
     id: item.id,
     mangaId: item.mangaId,

@@ -1,14 +1,12 @@
 import { unzipSync } from 'fflate'
 import { chapters, ChapterStatus, pages, processedJobs } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 
+import { type D1Binding, useDrizzle } from '../utils/drizzle'
 import { buildPageR2Key, type StorageBucketBinding } from '../utils/storage'
 
-type D1Database = Parameters<typeof drizzle>[0]
-
 export type ExtractZipEnv = {
-  DB: D1Database
+  DB: D1Binding
   STORAGE: StorageBucketBinding
 }
 
@@ -75,7 +73,7 @@ export async function handleExtractZip(
   message: ExtractZipMessage,
   env: ExtractZipEnv
 ): Promise<void> {
-  const db = drizzle(env.DB)
+  const db = useDrizzle(env.DB)
 
   const existing = await db.select({ jobId: processedJobs.jobId })
     .from(processedJobs)

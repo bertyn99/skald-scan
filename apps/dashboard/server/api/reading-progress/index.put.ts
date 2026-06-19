@@ -1,11 +1,10 @@
 import { readingProgress } from '@skald-scan/shared'
 import type { UpsertProgressRequest } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
 import {
-  getDatabaseFromEvent,
+  useDrizzle,
   readEventBody,
   requireAuthenticatedSession
 } from '../../utils/storage'
@@ -25,8 +24,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'mangaId, chapterId, and lastPageRead are required' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   // Client-supplied timestamp; default to now so callers without an explicit
   // updatedAt are treated as fresh (preserves the original behaviour).

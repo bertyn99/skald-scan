@@ -1,11 +1,10 @@
 import { manga } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler, readRawBody } from 'h3'
 
 import {
   buildCoverR2Key,
-  getDatabaseFromEvent,
+  useDrizzle,
   getStorageFromEvent,
   readEventParam,
   requireAdminRole
@@ -46,8 +45,7 @@ export default defineEventHandler(async (event) => {
     }
   })
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
   const coverUrl = `/api/manga/${mangaId}/cover`
 
   await db.update(manga)

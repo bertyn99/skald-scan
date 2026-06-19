@@ -1,9 +1,8 @@
 import { chapters, manga } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { and, count, desc, eq, isNull, sql } from 'drizzle-orm'
 import { createError, defineEventHandler, setResponseHeader } from 'h3'
 
-import { getDatabaseFromEvent, readEventQuery } from '../../utils/storage'
+import { useDrizzle, readEventQuery } from '../../utils/storage'
 
 const DEFAULT_LIMIT = 100
 const CACHE_CONTROL = 'public, max-age=60, s-maxage=300, stale-while-revalidate=600'
@@ -25,8 +24,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'offset must be 0 or greater' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   const selectShape = {
     id: manga.id,

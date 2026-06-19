@@ -1,9 +1,8 @@
 import { users } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventBody, readEventParam, requireAdminRole } from '../../../../utils/storage'
+import { useDrizzle, readEventBody, readEventParam, requireAdminRole } from '../../../../utils/storage'
 
 type RoleBody = {
   role?: string
@@ -26,8 +25,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: `Role must be one of: ${VALID_ROLES.join(', ')}` })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   await db.update(users).set({ role, updatedAt: Date.now() }).where(eq(users.id, userId)).run()
 

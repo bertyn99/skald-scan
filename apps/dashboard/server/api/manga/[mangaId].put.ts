@@ -1,10 +1,9 @@
 import { manga } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
 import {
-  getDatabaseFromEvent,
+  useDrizzle,
   readEventBody,
   readEventParam,
   requireAdminRole
@@ -42,8 +41,7 @@ export default defineEventHandler(async (event) => {
     updatedAt: now
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   const updates = Object.entries(changes).filter(([, value]) => value !== undefined)
   if (updates.length === 0) {

@@ -1,8 +1,11 @@
 import { processedJobs } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 import { createError, getQuery, getRouterParam, readBody, type H3Event } from 'h3'
-type D1Binding = Parameters<typeof drizzle>[0]
+
+import { type D1Binding, useDrizzle } from './drizzle'
+
+export { getD1Binding as getDatabaseFromEvent, useDrizzle } from './drizzle'
+export type { D1Binding } from './drizzle'
 
 export type ExtractZipQueueMessage = {
   type: 'extract-zip'
@@ -159,16 +162,6 @@ export const getCloudflareStorageEnv = (event: H3Event): DashboardStorageCloudfl
   return env
 }
 
-export const getDatabaseFromEvent = (event: H3Event): D1Binding => {
-  const env = getCloudflareStorageEnv(event)
-
-  if (!env.DB) {
-    throw new Error('Cloudflare DB binding is required')
-  }
-
-  return env.DB
-}
-
 export const getStorageFromEvent = (event: H3Event): StorageBucketBinding => {
   const env = getCloudflareStorageEnv(event)
 
@@ -237,7 +230,7 @@ export const claimQueueJob = async (
   database: D1Binding,
   jobId: string
 ): Promise<boolean> => {
-  const db = drizzle(database)
+  const db = useDrizzle(database)
   const existing = await db.select({ jobId: processedJobs.jobId })
     .from(processedJobs)
     .where(eq(processedJobs.jobId, jobId))
@@ -263,7 +256,7 @@ export const completeQueueJob = async (
   jobId: string,
   metadata?: Record<string, unknown>
 ): Promise<void> => {
-  const db = drizzle(database)
+  const db = useDrizzle(database)
   await db.update(processedJobs)
     .set({
       status: 'completed',
@@ -282,7 +275,7 @@ export const failQueueJob = async (
   jobId: string,
   error: unknown
 ): Promise<void> => {
-  const db = drizzle(database)
+  const db = useDrizzle(database)
   await db.update(processedJobs)
     .set({
       status: 'failed',

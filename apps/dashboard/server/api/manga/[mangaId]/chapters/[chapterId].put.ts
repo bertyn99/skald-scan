@@ -1,10 +1,9 @@
 import { chapters } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { and, eq } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
 import {
-  getDatabaseFromEvent,
+  useDrizzle,
   readEventBody,
   readEventParam,
   requireAdminRole
@@ -25,8 +24,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readEventBody<UpdateChapterBody>(event)
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   const updates: Record<string, unknown> = { updatedAt: Date.now() }
   if (body.title !== undefined) updates.title = body.title?.trim() || null

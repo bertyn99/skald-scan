@@ -1,11 +1,11 @@
 import { chapters, manga, mangaDexSync } from '@skald-scan/shared'
 import type { MangaDexClient, MangaDexManga } from '@skald-scan/shared'
 import { buildMangaDexCoverUrl, MangaStatus, SyncStatus } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 
 import { dispatchSyncQueueMessage, type SyncQueueRuntimeEnv } from '../utils/sync-queue'
 import { claimQueueJob, completeQueueJob, failQueueJob } from '../utils/storage'
+import { useDrizzle } from '../utils/drizzle'
 
 interface ImportMangaMessage {
   jobId: string
@@ -22,7 +22,7 @@ export async function handleImportManga(
     return
   }
 
-  const db = drizzle(env.DB)
+  const db = useDrizzle(env.DB)
 
   try {
     const response = await client.getManga(message.mangaDexId)

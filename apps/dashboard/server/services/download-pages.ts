@@ -1,8 +1,8 @@
 import { chapters, ChapterStatus, pages } from '@skald-scan/shared'
 import type { MangaDexClient } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 
+import { type D1Binding, useDrizzle } from '../utils/drizzle'
 import {
   buildPageR2Key,
   claimQueueJob,
@@ -10,8 +10,6 @@ import {
   failQueueJob,
   type StorageBucketBinding
 } from '../utils/storage'
-
-type D1Database = Parameters<typeof drizzle>[0]
 
 interface DownloadPagesMessage {
   jobId: string
@@ -22,7 +20,7 @@ interface DownloadPagesMessage {
 }
 
 export type DownloadPagesEnv = {
-  DB: D1Database
+  DB: D1Binding
   STORAGE: StorageBucketBinding
 }
 
@@ -35,7 +33,7 @@ export async function handleDownloadPages(
     return
   }
 
-  const db = drizzle(env.DB)
+  const db = useDrizzle(env.DB)
 
   try {
     await db.update(chapters)

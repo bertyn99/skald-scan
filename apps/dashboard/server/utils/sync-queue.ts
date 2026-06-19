@@ -1,20 +1,18 @@
 import { MangaDexClient } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 
 import { handleDownloadPages } from '../services/download-pages'
 import { handleExtractZip } from '../services/extract-zip'
 import { handleImportManga } from '../services/import-manga'
 import { handleSyncChapters } from '../services/sync-chapters'
+import type { D1Binding } from './drizzle'
 import type { StorageBucketBinding, SyncQueueMessage } from './storage'
-
-type D1Database = Parameters<typeof drizzle>[0]
 
 type QueueBinding = {
   send: (message: SyncQueueMessage) => Promise<void>
 }
 
 export type SyncQueueRuntimeEnv = {
-  DB: D1Database
+  DB: D1Binding
   STORAGE: StorageBucketBinding
   SYNC_QUEUE: QueueBinding
 }

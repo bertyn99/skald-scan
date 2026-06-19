@@ -1,9 +1,8 @@
 import { chapters, manga, readingProgress } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { and, desc, eq, inArray } from 'drizzle-orm'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, requireAuthenticatedSession } from '../../utils/storage'
+import { useDrizzle, requireAuthenticatedSession } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   requireAuthenticatedSession(event)
@@ -13,8 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: 'Authentication required' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   const rows = await db.select({
     mangaId: readingProgress.mangaId,

@@ -9,12 +9,13 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { bearer } from 'better-auth/plugins'
 import { memoryAdapter } from 'better-auth/adapters/memory'
-import { drizzle } from 'drizzle-orm/d1'
 import { count, eq } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 
+import { type D1Binding, useDrizzle } from './drizzle'
+
 type AuthCloudflareEnv = {
-  DB?: Parameters<typeof drizzle>[0]
+  DB?: D1Binding
   BETTER_AUTH_SECRET?: string
   BETTER_AUTH_URL?: string
   READER_URL?: string
@@ -22,7 +23,7 @@ type AuthCloudflareEnv = {
 
 const createDatabaseAdapter = (env?: AuthCloudflareEnv) => {
   if (env?.DB) {
-    const db = drizzle(env.DB)
+    const db = useDrizzle(env.DB)
 
     return drizzleAdapter(db, {
       provider: 'sqlite',
@@ -87,7 +88,7 @@ export const createAuth = (env?: AuthCloudflareEnv) => {
         create: {
           after: async (user) => {
             if (!env?.DB) return
-            const db = drizzle(env.DB)
+            const db = useDrizzle(env.DB)
             const userCount = await db.select({ count: count() }).from(sharedUsers).get()
             if ((userCount?.count ?? 0) <= 1 && user.role !== UserRole.Admin) {
               await db.update(sharedUsers)

@@ -1,10 +1,9 @@
 import { chapters, manga, mangaDexSync } from '@skald-scan/shared'
 import { ChapterStatus } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { eq, asc, and, isNull } from 'drizzle-orm'
 import { createError, defineEventHandler, setResponseHeader } from 'h3'
 
-import { getDatabaseFromEvent, readEventParam } from '../../utils/storage'
+import { useDrizzle, readEventParam } from '../../utils/storage'
 
 export default defineEventHandler(async (event) => {
   const mangaId = readEventParam(event, 'mangaId')
@@ -13,8 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'mangaId is required' })
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
 
   const item = await db.select({
     id: manga.id,

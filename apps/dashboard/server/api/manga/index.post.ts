@@ -1,9 +1,8 @@
 import { manga } from '@skald-scan/shared'
 import { MangaStatus } from '@skald-scan/shared'
-import { drizzle } from 'drizzle-orm/d1'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, readEventBody, requireAdminRole } from '../../utils/storage'
+import { useDrizzle, readEventBody, requireAdminRole } from '../../utils/storage'
 
 type CreateMangaBody = {
   title?: string
@@ -38,8 +37,7 @@ export default defineEventHandler(async (event) => {
     updatedAt: now
   }
 
-  const database = getDatabaseFromEvent(event)
-  const db = drizzle(database)
+  const db = useDrizzle(event)
   await db.insert(manga).values(record).run()
 
   return {
