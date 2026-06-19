@@ -1,6 +1,7 @@
 export function useProgressSync(mangaId: () => string, chapterId: () => string, totalPages: () => number) {
   let lastSyncedPage = 0
   let timer: ReturnType<typeof setTimeout> | null = null
+  let lastUpdatedAt = Date.now()
 
   function onPageChange(page: number) {
     if (page === lastSyncedPage) return
@@ -17,12 +18,20 @@ export function useProgressSync(mangaId: () => string, chapterId: () => string, 
     if (!mId || !cId || total === 0) return
 
     const read = page >= total
+    const updatedAt = Date.now()
 
     try {
-      await $fetch('/api/proxy/reading-progress', {
+      await $fetch(dashboardApi('/reading-progress'), {
         method: 'PUT',
-        body: { mangaId: mId, chapterId: cId, lastPageRead: page, read },
+        body: {
+          mangaId: mId,
+          chapterId: cId,
+          lastPageRead: page,
+          read,
+          updatedAt
+        }
       })
+      lastUpdatedAt = updatedAt
     } catch {
       // Silent fail — progress sync is non-critical
     }
@@ -32,5 +41,5 @@ export function useProgressSync(mangaId: () => string, chapterId: () => string, 
     if (timer) clearTimeout(timer)
   }
 
-  return { onPageChange, destroy }
+  return { onPageChange, destroy, lastUpdatedAt: () => lastUpdatedAt }
 }

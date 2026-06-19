@@ -76,6 +76,7 @@ describe('MangaDex sync API routes', () => {
         auth: true,
         env: {
           SYNC_QUEUE: { send: queueSend },
+          STORAGE: { put: vi.fn(), get: vi.fn() }
         },
         body: { mangaDexId: 'md-test-123' },
       })

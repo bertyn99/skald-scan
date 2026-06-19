@@ -19,11 +19,14 @@
     </div>
 
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      <ReaderMangaCard
-        v-for="manga in mangaList"
-        :key="manga.id"
-        :manga="manga"
-      />
+      <NuxtLink
+        v-for="item in mangaList"
+        :key="item.mangaId"
+        :to="`/read/${item.mangaId}/${item.chapterId}`"
+        class="block"
+      >
+        <ReaderMangaCard :manga="toCard(item)" />
+      </NuxtLink>
     </div>
   </UContainer>
 </template>
@@ -33,9 +36,32 @@ import type { MangaListItem } from '@skald-scan/shared'
 
 useHead({ title: 'Shelf — Skald Scan' })
 
-const { data: response, pending, error, refresh } = await useFetch<{ manga: MangaListItem[] }>('/api/proxy/manga', {
-  query: { reading: 'true' },
-})
+type ProgressItem = {
+  mangaId: string
+  title: string
+  coverUrl: string | null
+  status: string
+  chapterId: string
+  chapterNumber: number
+  lastPageRead: number
+  lastReadAt: number
+}
 
-const mangaList = computed(() => response.value?.manga ?? [])
+const { data: response, pending, error, refresh } = await useFetch<{ items: ProgressItem[] }>(
+  dashboardApi('/reading-progress')
+)
+
+const mangaList = computed(() => response.value?.items ?? [])
+
+function toCard(item: ProgressItem): MangaListItem {
+  return {
+    id: item.mangaId,
+    title: item.title,
+    coverUrl: item.coverUrl,
+    status: item.status as MangaListItem['status'],
+    chapterCount: 0,
+    updatedAt: item.lastReadAt,
+    lastReadChapter: item.chapterNumber
+  }
+}
 </script>

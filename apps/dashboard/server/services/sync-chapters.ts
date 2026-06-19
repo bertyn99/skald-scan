@@ -43,7 +43,7 @@ export async function handleSyncChapters(
           chapterNumber,
           language: mdChapter.attributes.translatedLanguage ?? 'en',
           pagesCount: mdChapter.attributes.pages ?? 0,
-          status: ChapterStatus.Available,
+          status: ChapterStatus.Processing,
           scanlator: mdChapter.relationships?.find(r => r.type === 'scanlation_group')?.id ?? null,
           mangaDexChapterId: mdChapter.id,
           createdAt: now,

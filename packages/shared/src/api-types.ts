@@ -67,6 +67,7 @@ export interface TriggerImportResponse {
 export interface ImportStatusResponse {
   status: 'queued' | 'processing' | 'completed' | 'failed';
   progress?: { chapters: number; pages: number };
+  mangaId?: string;
   error?: string;
 }
 

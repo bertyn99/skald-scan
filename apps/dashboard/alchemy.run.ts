@@ -11,6 +11,9 @@ export const dashboard = await Nuxt("dashboard", {
     STORAGE: storage,
     SESSIONS: sessions,
     SYNC_QUEUE: syncQueue,
+    BETTER_AUTH_SECRET: alchemy.secret(process.env.BETTER_AUTH_SECRET),
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+    READER_URL: process.env.READER_URL ?? "http://localhost:3001",
   },
   eventSources: [{
     queue: syncQueue,

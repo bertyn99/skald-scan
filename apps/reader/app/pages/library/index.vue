@@ -24,9 +24,9 @@
     <div v-else-if="mangaList.length === 0" class="text-center py-16 text-muted-foreground">
       <UIcon name="i-lucide-book-open" class="w-12 h-12 mx-auto mb-4" />
       <p v-if="search">No results for "{{ search }}".</p>
-      <p v-else>Your library is empty. Search MangaDex to add some manga.</p>
-      <UButton v-if="!search" to="/search" class="mt-4" icon="i-lucide-search">
-        Search MangaDex
+      <p v-else>No manga has been added to this library yet.</p>
+      <UButton v-if="!search" to="/" class="mt-4" icon="i-lucide-home">
+        Back to home
       </UButton>
     </div>
 

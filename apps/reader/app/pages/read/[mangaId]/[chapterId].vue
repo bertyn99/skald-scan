@@ -118,7 +118,18 @@ watch(showOverlay, (v) => {
   if (v) autoHideOverlay()
 })
 
-const { data: response } = await useFetch<{ manga: MangaFull; chapters: ChapterSummary[] }>(`/api/proxy/manga/${mangaId}`)
+const { data: response } = await useFetch<{ manga: MangaFull; chapters: ChapterSummary[] }>(dashboardApi(`/manga/${mangaId}`))
+
+const { data: progressData } = await useFetch<{ lastPageRead: number; chapterId: string }>(
+  dashboardApi(`/reading-progress/${mangaId}`),
+  { default: () => ({ lastPageRead: 1, chapterId }) }
+)
+
+const progressSync = useProgressSync(
+  () => mangaId,
+  () => chapterId,
+  () => totalPages.value
+)
 
 // Wait for chapter data, then find current chapter and set state
 watchEffect(() => {
@@ -139,15 +150,36 @@ watchEffect(() => {
 })
 
 function pageUrl(page: number): string {
-  return `/api/proxy/manga/${mangaId}/chapters/${chapterId}/pages/${page}`
+  return dashboardApi(`/manga/${mangaId}/chapters/${chapterId}/pages/${page}`)
 }
 
 function onPageVisible(page: number) {
   currentPage.value = page
+  progressSync.onPageChange(page)
+}
+
+function scrollToPage(page: number) {
+  const el = scrollContainer.value?.querySelector(`[data-page="${page}"]`)
+  el?.scrollIntoView({ behavior: 'instant' as ScrollBehavior })
 }
 
 // Keyboard navigation
 onMounted(() => {
+  const gate = canReadChapter(mangaId, chapterId)
+  if (!gate.allowed) {
+    navigateTo(`/manga/${mangaId}`)
+    return
+  }
+
+  if (
+    progressData.value?.chapterId === chapterId
+    && progressData.value.lastPageRead > 1
+    && progressData.value.lastPageRead <= totalPages.value
+  ) {
+    currentPage.value = progressData.value.lastPageRead
+    nextTick(() => scrollToPage(progressData.value!.lastPageRead))
+  }
+
   const handler = (e: KeyboardEvent) => {
     if (e.key === 'ArrowLeft' && prevChapterId.value) {
       navigateTo(`/read/${mangaId}/${prevChapterId.value}`)
@@ -156,7 +188,10 @@ onMounted(() => {
     }
   }
   window.addEventListener('keydown', handler)
-  onUnmounted(() => window.removeEventListener('keydown', handler))
+  onUnmounted(() => {
+    window.removeEventListener('keydown', handler)
+    progressSync.destroy()
+  })
 })
 
 autoHideOverlay()

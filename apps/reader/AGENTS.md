@@ -1,19 +1,22 @@
 # apps/reader
 
-Public reader. **Deliberately stateless** — no auth, no direct DB writes, no queue access. All data flows through the dashboard proxy. See root `AGENTS.md` for the monorepo picture.
+Public reader for end users. Server-side: stateless BFF proxy only. Client-side: Bearer auth for user APIs (progress, collections).
 
-## The one rule
+## Architecture
 
-**Do not add auth, sessions, or direct DB/queue access to this app.** Reader is a separate origin by design. If an endpoint needs protection, protect it on the dashboard side — reader just forwards credentials via headers.
+- `server/api/proxy/[...].ts` — strips `/api/proxy`, normalizes to dashboard `/api/*`, forwards headers (including `Authorization`).
+- `lib/auth.ts` + `useAuthSession` — Better Auth client against dashboard `/api/auth` with Bearer token storage.
+- Catalog/pages are public via proxy; user routes require sign-in.
 
-## How it works
+## Composables
 
-`server/api/proxy/[...].ts` forwardser: strips `/api/proxy`, calls `runtimeConfig.public.dashboardUrl` (default `http://localhost:3000`), passes through method/body/headers (minus `host`), streams the response body back. CORS `*` on `/api/**` is set in `nuxt.config.ts` `routeRules` — intentional, leave it.
-
-`app/composables/`: `useReader`, `useProgressSync`, `useOfflineCache` — client-side reading state + progress reporting via the proxy.
+- `useProgressSync` — debounced progress PUT with `updatedAt` stale-client guard
+- `useOfflineCache` / service worker — offline page cache
+- `canReadChapter` — P3 credit hook stub (always allows today)
 
 ## Gotchas
 
-- `.nuxtrc` pins `@nuxt/test-utils` setup. Don't remove unless you understand why it's pinned.
-- Reader's `vitest.config.ts` sets `globals: true` (unlike dashboard/shared) — `describe`/`it`/`expect` are available without imports. Only `setup.test.ts` exists; it's a smoke test.
-- Reader deploys with `DB` + `STORAGE` bindings (see its `alchemy.run.ts`) but server code doesn't use them today — they're wired in case cover/page serving moves here. Don't assume reader is read-only because it lacks bindings.
+- Proxy paths: use `dashboardApi('/manga')` helper; proxy prepends `/api` when missing.
+- `.nuxtrc` pins `@nuxt/test-utils` setup.
+- Reader `vitest` uses `globals: true`.
+- `DB` + `STORAGE` bindings exist in `alchemy.run.ts` for optional future edge page serving.

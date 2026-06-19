@@ -2,9 +2,10 @@ import { MangaDexClient } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 
 import { handleDownloadPages } from '../services/download-pages'
+import { handleExtractZip } from '../services/extract-zip'
 import { handleImportManga } from '../services/import-manga'
 import { handleSyncChapters } from '../services/sync-chapters'
-import type { SyncQueueMessage } from './storage'
+import type { StorageBucketBinding, SyncQueueMessage } from './storage'
 
 type D1Database = Parameters<typeof drizzle>[0]
 
@@ -14,6 +15,7 @@ type QueueBinding = {
 
 export type SyncQueueRuntimeEnv = {
   DB: D1Database
+  STORAGE: StorageBucketBinding
   SYNC_QUEUE: QueueBinding
 }
 
@@ -37,11 +39,7 @@ async function processSyncQueueMessage(
       await handleDownloadPages(message, env, client)
       break
     case 'extract-zip':
-      console.warn(JSON.stringify({
-        level: 'warn',
-        message: 'extract-zip is not processed inline in development',
-        jobId: message.jobId,
-      }))
+      await handleExtractZip(message, env)
       break
     default: {
       const unhandled: never = message

@@ -2,6 +2,7 @@ import { createError, defineEventHandler } from 'h3'
 
 import {
   buildTempZipR2Key,
+  getDatabaseFromEvent,
   getStorageFromEvent,
   getSyncQueueFromEvent,
   isZipLikeFileName,
@@ -9,6 +10,7 @@ import {
   requireAdminRole,
   type ExtractZipQueueMessage
 } from '../../utils/storage'
+import { dispatchSyncQueueMessage } from '../../utils/sync-queue'
 
 type UploadZipBody = {
   mangaId?: string
@@ -16,6 +18,8 @@ type UploadZipBody = {
   fileName?: string
   content?: string
 }
+
+const MAX_ZIP_BYTES = 100 * 1024 * 1024
 
 export default defineEventHandler(async (event) => {
   requireAdminRole(event)
@@ -47,6 +51,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'content must be valid base64' })
   }
 
+  if (fileBuffer.byteLength > MAX_ZIP_BYTES) {
+    throw createError({
+      statusCode: 413,
+      statusMessage: `Archive exceeds maximum size of ${MAX_ZIP_BYTES} bytes`
+    })
+  }
+
   const jobId = crypto.randomUUID()
   const tempR2Key = buildTempZipR2Key(jobId)
 
@@ -71,8 +82,14 @@ export default defineEventHandler(async (event) => {
     tempR2Key
   }
 
-  const queue = getSyncQueueFromEvent(event)
-  await queue.send(queueMessage)
+  await dispatchSyncQueueMessage(
+    {
+      DB: getDatabaseFromEvent(event),
+      STORAGE: storage,
+      SYNC_QUEUE: getSyncQueueFromEvent(event)
+    },
+    queueMessage
+  )
 
   return {
     queued: true,

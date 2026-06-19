@@ -4,7 +4,7 @@
   "fqn": "dashboard/bertyn/dashboard",
   "seq": 0,
   "data": {},
-  "status": "updating",
+  "status": "updated",
   "output": {
     "Symbol(alchemy::ResourceKind)": "cloudflare::Worker",
     "Symbol(alchemy::ResourceID)": "dashboard",
@@ -80,7 +80,7 @@
         "Symbol(alchemy::ResourceScope)": {
           "@scope": null
         },
-        "Symbol(alchemy::ResourceSeq)": 3,
+        "Symbol(alchemy::ResourceSeq)": 4,
         "type": "queue",
         "id": "",
         "name": "skald-scan-bertyn-sync-queue",
@@ -92,6 +92,33 @@
         "modifiedOn": "2026-06-17T14:15:50.041Z"
       }
     },
+    "eventSources": [
+      {
+        "queue": {
+          "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
+          "Symbol(alchemy::ResourceID)": "skald-sync-queue",
+          "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sync-queue",
+          "Symbol(alchemy::ResourceScope)": {
+            "@scope": null
+          },
+          "Symbol(alchemy::ResourceSeq)": 4,
+          "type": "queue",
+          "id": "",
+          "name": "skald-scan-bertyn-sync-queue",
+          "dev": {
+            "id": "skald-sync-queue",
+            "remote": false
+          },
+          "createdOn": "2026-06-17T14:15:50.041Z",
+          "modifiedOn": "2026-06-17T14:15:50.041Z"
+        },
+        "settings": {
+          "batchSize": 5,
+          "maxConcurrency": 5,
+          "maxRetries": 3
+        }
+      }
+    ],
     "noBundle": true,
     "compatibility": "node",
     "entrypoint": ".output/server/index.mjs",
@@ -114,7 +141,7 @@
     "id": "dashboard",
     "format": "esm",
     "createdAt": 1781708375887,
-    "updatedAt": 1781730689705,
+    "updatedAt": 1781863083005,
     "url": "http://localhost:3000/",
     "routes": [],
     "domains": []
@@ -187,7 +214,7 @@
         "Symbol(alchemy::ResourceScope)": {
           "@scope": null
         },
-        "Symbol(alchemy::ResourceSeq)": 3,
+        "Symbol(alchemy::ResourceSeq)": 4,
         "type": "queue",
         "id": "",
         "name": "skald-scan-bertyn-sync-queue",
@@ -199,105 +226,33 @@
         "modifiedOn": "2026-06-17T14:15:50.041Z"
       }
     },
-    "noBundle": true,
-    "compatibility": "node",
-    "entrypoint": ".output/server/index.mjs",
-    "name": "skald-scan-bertyn-dashboard",
-    "cwd": "",
-    "compatibilityFlags": [
-      "nodejs_compat",
-      "nodejs_compat_populate_process_env"
-    ],
-    "compatibilityDate": "2026-04-24",
-    "assets": {
-      "html_handling": "auto-trailing-slash",
-      "not_found_handling": "single-page-application",
-      "run_worker_first": false
-    },
-    "dev": {
-      "url": "http://localhost:3001"
-    }
-  },
-  "oldProps": {
-    "bindings": {
-      "DB": {
-        "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
-        "Symbol(alchemy::ResourceID)": "skald-db",
-        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-db",
-        "Symbol(alchemy::ResourceScope)": {
-          "@scope": null
+    "eventSources": [
+      {
+        "queue": {
+          "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
+          "Symbol(alchemy::ResourceID)": "skald-sync-queue",
+          "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sync-queue",
+          "Symbol(alchemy::ResourceScope)": {
+            "@scope": null
+          },
+          "Symbol(alchemy::ResourceSeq)": 4,
+          "type": "queue",
+          "id": "",
+          "name": "skald-scan-bertyn-sync-queue",
+          "dev": {
+            "id": "skald-sync-queue",
+            "remote": false
+          },
+          "createdOn": "2026-06-17T14:15:50.041Z",
+          "modifiedOn": "2026-06-17T14:15:50.041Z"
         },
-        "Symbol(alchemy::ResourceSeq)": 0,
-        "type": "d1",
-        "id": "",
-        "name": "skald-scan-bertyn-db",
-        "migrationsDir": "/home/bertyn/project/yggdraz/skald-scan/packages/shared/drizzle",
-        "migrationsTable": "d1_migrations",
-        "dev": {
-          "id": "skald-scan-bertyn-db",
-          "remote": false
-        },
-        "jurisdiction": "default"
-      },
-      "STORAGE": {
-        "Symbol(alchemy::ResourceKind)": "cloudflare::R2Bucket",
-        "Symbol(alchemy::ResourceID)": "skald-manga",
-        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-manga",
-        "Symbol(alchemy::ResourceScope)": {
-          "@scope": null
-        },
-        "Symbol(alchemy::ResourceSeq)": 1,
-        "name": "skald-scan-bertyn-manga",
-        "location": "",
-        "creationDate": {
-          "@date": "2026-06-17T14:15:50.011Z"
-        },
-        "jurisdiction": "default",
-        "type": "r2_bucket",
-        "accountId": "",
-        "dev": {
-          "id": "skald-scan-bertyn-manga",
-          "remote": false,
-          "isDeployed": false
+        "settings": {
+          "batchSize": 5,
+          "maxConcurrency": 5,
+          "maxRetries": 3
         }
-      },
-      "SESSIONS": {
-        "Symbol(alchemy::ResourceKind)": "cloudflare::KVNamespace",
-        "Symbol(alchemy::ResourceID)": "skald-sessions",
-        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sessions",
-        "Symbol(alchemy::ResourceScope)": {
-          "@scope": null
-        },
-        "Symbol(alchemy::ResourceSeq)": 2,
-        "type": "kv_namespace",
-        "namespaceId": "",
-        "title": "skald-scan-bertyn-sessions",
-        "dev": {
-          "id": "skald-sessions",
-          "remote": false
-        },
-        "createdAt": 1781705750025,
-        "modifiedAt": 1781705750025
-      },
-      "SYNC_QUEUE": {
-        "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
-        "Symbol(alchemy::ResourceID)": "skald-sync-queue",
-        "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sync-queue",
-        "Symbol(alchemy::ResourceScope)": {
-          "@scope": null
-        },
-        "Symbol(alchemy::ResourceSeq)": 3,
-        "type": "queue",
-        "id": "",
-        "name": "skald-scan-bertyn-sync-queue",
-        "dev": {
-          "id": "skald-sync-queue",
-          "remote": false
-        },
-        "createdOn": "2026-06-17T14:15:50.041Z",
-        "modifiedOn": "2026-06-17T14:15:50.041Z"
       }
-    },
+    ],
     "noBundle": true,
     "compatibility": "node",
     "entrypoint": ".output/server/index.mjs",

@@ -13,8 +13,11 @@ export default defineEventHandler(async (event) => {
 
   const config = useRuntimeConfig()
   const dashboardUrl = config.public.dashboardUrl
-  const path = (event.path || '').replace(/^\/api\/proxy/, '')
-  const target = new URL(path, dashboardUrl).toString()
+  const strippedPath = (event.path || '').replace(/^\/api\/proxy/, '') || '/'
+  const apiPath = strippedPath.startsWith('/api')
+    ? strippedPath
+    : `/api${strippedPath.startsWith('/') ? strippedPath : `/${strippedPath}`}`
+  const target = new URL(apiPath, dashboardUrl).toString()
 
   const method = getMethod(event)
   const body = method !== 'GET' && method !== 'HEAD' ? await readRawBody(event) : undefined

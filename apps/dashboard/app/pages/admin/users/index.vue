@@ -43,7 +43,7 @@
 import type { TableColumn } from '@nuxt/ui'
 import { h, resolveComponent } from 'vue'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 useHead({ title: 'Users — Skald Scan Dashboard' })
 

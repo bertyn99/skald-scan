@@ -39,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-async function evictIfNeeded(cache: Cache) {
+async function evictIfNeeded(cache) {
   const entries = await cache.keys()
   if (entries.length < 200) return
 

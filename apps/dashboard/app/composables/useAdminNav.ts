@@ -29,6 +29,18 @@ export function useAdminNav() {
       active: route.path.startsWith('/admin/mangadex')
     },
     {
+      label: 'Jobs',
+      icon: 'i-lucide-list-checks',
+      to: '/admin/jobs',
+      active: route.path.startsWith('/admin/jobs')
+    },
+    {
+      label: 'Settings',
+      icon: 'i-lucide-settings',
+      to: '/admin/settings',
+      active: route.path.startsWith('/admin/settings')
+    },
+    {
       label: 'Users',
       icon: 'i-lucide-users',
       to: '/admin/users',

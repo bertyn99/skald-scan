@@ -37,6 +37,14 @@
     }
   ],
   "queues": {
+    "consumers": [
+      {
+        "queue": "skald-scan-bertyn-sync-queue",
+        "max_batch_size": 5,
+        "max_concurrency": 5,
+        "max_retries": 3
+      }
+    ],
     "producers": [
       {
         "binding": "SYNC_QUEUE",

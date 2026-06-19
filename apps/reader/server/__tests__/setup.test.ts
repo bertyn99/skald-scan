@@ -40,8 +40,26 @@ describe('Proxy Handler', () => {
     expect(typeof proxyHandler).toBe('function')
   })
 
-  it('strips prefix correctly and forwards request', async () => {
+  it('strips prefix and prepends /api when missing', async () => {
     const event = {
+      path: '/api/proxy/manga',
+      node: {
+        req: { url: '/api/proxy/manga' }
+      }
+    } as any
+
+    await proxyHandler(event)
+
+    expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/manga', expect.objectContaining({
+      method: 'GET',
+      headers: { 'user-agent': 'test' },
+      body: undefined
+    }))
+  })
+
+  it('preserves /api prefix when already present', async () => {
+    const event = {
+      path: '/api/proxy/api/manga',
       node: {
         req: { url: '/api/proxy/api/manga' }
       }
@@ -50,9 +68,28 @@ describe('Proxy Handler', () => {
     await proxyHandler(event)
 
     expect(fetch).toHaveBeenCalledWith('http://localhost:3000/api/manga', expect.objectContaining({
-      method: 'GET',
-      headers: { 'user-agent': 'test' }, // host should be stripped
-      body: undefined
+      method: 'GET'
     }))
+  })
+
+  it('forwards Authorization header', async () => {
+    vi.mocked(h3.getHeaders).mockReturnValueOnce({
+      host: 'localhost',
+      authorization: 'Bearer test-token'
+    })
+
+    const event = {
+      path: '/api/proxy/reading-progress',
+      node: { req: { url: '/api/proxy/reading-progress' } }
+    } as any
+
+    await proxyHandler(event)
+
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:3000/api/reading-progress',
+      expect.objectContaining({
+        headers: expect.objectContaining({ authorization: 'Bearer test-token' })
+      })
+    )
   })
 })

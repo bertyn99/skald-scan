@@ -13,19 +13,19 @@
             <h2 class="text-sm font-semibold text-highlighted">Metadata</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <UFormField label="Title" required>
-                <UInput v-model="form.title" placeholder="Manga title" />
+                <UInput v-model="form.title" placeholder="Manga title" :disabled="!!createdMangaId" />
               </UFormField>
               <UFormField label="Author">
-                <UInput v-model="form.author" placeholder="Author name" />
+                <UInput v-model="form.author" placeholder="Author name" :disabled="!!createdMangaId" />
               </UFormField>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <UFormField label="Artist">
-                <UInput v-model="form.artist" placeholder="Artist name" />
+                <UInput v-model="form.artist" placeholder="Artist name" :disabled="!!createdMangaId" />
               </UFormField>
               <UFormField label="Tags (comma separated)">
-                <UInput v-model="form.tags" placeholder="action, comedy, romance" />
+                <UInput v-model="form.tags" placeholder="action, comedy, romance" :disabled="!!createdMangaId" />
               </UFormField>
             </div>
 
@@ -35,6 +35,7 @@
                 :rows="3"
                 placeholder="Brief description..."
                 autoresize
+                :disabled="!!createdMangaId"
               />
             </UFormField>
 
@@ -42,6 +43,7 @@
               <AdminUploadDropzone
                 accept="image/*"
                 :max-size="5 * 1024 * 1024"
+                :disabled="!!createdMangaId"
                 @upload="handleCoverUpload"
               />
               <div v-if="coverPreview" class="mt-3">
@@ -65,12 +67,20 @@
             </div>
 
             <UFormField label="Chapter number" required>
-              <UInput v-model.number="chapterNumber" type="number" placeholder="1" min="1" class="max-w-32" />
+              <UInput
+                v-model.number="chapterNumber"
+                type="number"
+                placeholder="1"
+                min="1"
+                class="max-w-32"
+                :disabled="!createdMangaId || zipUploading"
+              />
             </UFormField>
 
             <AdminUploadDropzone
               accept=".zip,.cbz"
               :max-size="100 * 1024 * 1024"
+              :disabled="!createdMangaId || zipUploading"
               @upload="handleZipUpload"
             />
 
@@ -89,6 +99,7 @@
               Cancel
             </UButton>
             <UButton
+              v-if="!createdMangaId"
               color="primary"
               icon="i-lucide-plus"
               :disabled="!form.title || creating"
@@ -96,6 +107,14 @@
               @click="createManga"
             >
               Create manga
+            </UButton>
+            <UButton
+              v-else
+              color="primary"
+              icon="i-lucide-library"
+              :to="`/admin/library/${createdMangaId}`"
+            >
+              Go to manga detail
             </UButton>
           </div>
         </div>
@@ -105,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 useHead({ title: 'Upload — Skald Scan Dashboard' })
 
@@ -121,9 +140,9 @@ const coverPreview = ref<string | null>(null)
 const coverData = ref<string | null>(null)
 const chapterNumber = ref(1)
 const creating = ref(false)
-
-const zipStatus = ref<{ success: boolean; message: string } | null>(null)
 const createdMangaId = ref<string | null>(null)
+
+const { uploading: zipUploading, status: zipStatus, uploadChapterZip } = useChapterZipUpload(createdMangaId)
 
 function handleCoverUpload(file: File) {
   const reader = new FileReader()
@@ -135,34 +154,7 @@ function handleCoverUpload(file: File) {
 }
 
 async function handleZipUpload(file: File) {
-  if (!createdMangaId.value) {
-    zipStatus.value = { success: false, message: 'Create the manga first, then upload chapters.' }
-    return
-  }
-
-  zipStatus.value = { success: false, message: 'Uploading archive...' }
-
-  const reader = new FileReader()
-  reader.onload = async (e) => {
-    const base64 = (e.target?.result as string).split(',')[1]
-    const chapterId = crypto.randomUUID()
-
-    try {
-      await $fetch('/api/storage/upload-zip', {
-        method: 'POST',
-        body: {
-          mangaId: createdMangaId.value,
-          chapterId,
-          fileName: file.name,
-          content: base64
-        }
-      })
-      zipStatus.value = { success: true, message: `Uploaded ${file.name}. Extraction queued.` }
-    } catch (err) {
-      zipStatus.value = { success: false, message: `Upload failed: ${(err as Error).message}` }
-    }
-  }
-  reader.readAsDataURL(file)
+  await uploadChapterZip(file, chapterNumber.value)
 }
 
 async function createManga() {
@@ -182,14 +174,20 @@ async function createManga() {
         artist: form.artist.trim() || null,
         description: form.description.trim() || null,
         tags: tagsJson,
-        coverUrl: coverData.value ? `data:uploaded` : null
+        coverUrl: coverData.value ? 'data:uploaded' : null
       }
     })
 
     createdMangaId.value = result.item.id
-    zipStatus.value = { success: true, message: 'Manga created. You can now upload chapter archives.' }
 
-    await navigateTo(`/admin/library/${result.item.id}`)
+    if (coverData.value) {
+      const blob = Uint8Array.from(atob(coverData.value), c => c.charCodeAt(0))
+      await $fetch(`/api/manga/${result.item.id}/cover`, {
+        method: 'POST',
+        body: blob.buffer,
+        headers: { 'Content-Type': 'image/webp' }
+      })
+    }
   } catch (err) {
     console.error('Failed to create manga:', err)
   } finally {

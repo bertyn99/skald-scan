@@ -3,8 +3,8 @@
     <div class="rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-colors">
       <div class="aspect-[3/4] bg-muted relative">
         <img
-          v-if="manga.coverUrl"
-          :src="manga.coverUrl"
+          v-if="displayCoverUrl"
+          :src="displayCoverUrl"
           :alt="manga.title"
           class="w-full h-full object-cover"
           loading="lazy"
@@ -51,6 +51,8 @@ import type { MangaListItem } from '@skald-scan/shared'
 const props = defineProps<{
   manga: MangaListItem
 }>()
+
+const displayCoverUrl = computed(() => mangaCoverUrl(props.manga.id, props.manga.coverUrl))
 
 const statusColor = computed(() => {
   switch (props.manga.status) {

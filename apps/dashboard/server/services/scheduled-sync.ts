@@ -1,7 +1,7 @@
 import { manga, mangaDexSync } from '@skald-scan/shared'
 import { SyncStatus } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { and, asc, eq, isNull, lt, not } from 'drizzle-orm'
+import { and, asc, eq, isNull, lt, not, or } from 'drizzle-orm'
 
 import type { SyncQueueMessage } from '../utils/storage'
 
@@ -31,7 +31,7 @@ export async function handleScheduledSync(
     .where(and(
       eq(mangaDexSync.autoSyncEnabled, true),
       eq(mangaDexSync.syncStatus, SyncStatus.Idle),
-      lt(mangaDexSync.lastSyncedAt, cutoff),
+      or(isNull(mangaDexSync.lastSyncedAt), lt(mangaDexSync.lastSyncedAt, cutoff)),
       not(isNull(manga.mangaDexId)),
     ))
     .orderBy(asc(mangaDexSync.lastSyncedAt))

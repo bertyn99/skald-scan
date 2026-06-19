@@ -21,12 +21,13 @@
 
       <UAlert
         v-if="importStatus"
-        :color="importStatus.error ? 'error' : 'success'"
+        :color="importStatus.error ? 'error' : importStatus.progress ? 'info' : 'success'"
         variant="subtle"
-        :icon="importStatus.error ? 'i-lucide-alert-circle' : 'i-lucide-check-circle'"
+        :icon="importStatus.error ? 'i-lucide-alert-circle' : importStatus.progress ? 'i-lucide-loader-2' : 'i-lucide-check-circle'"
         :title="importStatus.title"
         :description="importStatus.message"
-        :actions="importStatus.error ? undefined : [{ label: 'Open library', to: '/admin/library', color: 'neutral', variant: 'outline' }]"
+        :ui="{ icon: importStatus.progress ? 'animate-spin' : undefined }"
+        :actions="importStatus.libraryLink ? [{ label: 'Open manga', to: importStatus.libraryLink, color: 'neutral', variant: 'outline' }] : undefined"
       />
 
       <UEmpty
@@ -118,7 +119,7 @@
 <script setup lang="ts">
 import type { FetchError } from 'ofetch'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 useHead({ title: 'Import — Skald Scan Dashboard' })
 
@@ -141,7 +142,13 @@ const searching = ref(false)
 const error = ref(false)
 const results = ref<MangaDexResult[]>([])
 const importingId = ref<string | null>(null)
-const importStatus = ref<{ title: string; message: string; error: boolean } | null>(null)
+const importStatus = ref<{
+  title: string
+  message: string
+  error: boolean
+  progress?: boolean
+  libraryLink?: string
+} | null>(null)
 
 async function doSearch() {
   const q = query.value.trim()
@@ -189,40 +196,91 @@ function getFetchErrorMessage(err: unknown): string {
   return 'Unknown error'
 }
 
+async function pollImportStatus(jobId: string, title: string) {
+  const maxAttempts = 120
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    const status = await $fetch<{
+      status: string
+      mangaId?: string
+      error?: string
+    }>(`/api/mangadex/import/status/${jobId}`)
+
+    if (status.status === 'queued' || status.status === 'processing') {
+      importStatus.value = {
+        title,
+        message: `Importing… (${status.status})`,
+        error: false,
+        progress: true
+      }
+      continue
+    }
+
+    if (status.status === 'completed') {
+      const libraryLink = status.mangaId ? `/admin/library/${status.mangaId}` : '/admin/library'
+      importStatus.value = {
+        title,
+        message: 'Import complete.',
+        error: false,
+        progress: false,
+        libraryLink
+      }
+      toast.add({
+        title: 'Import complete',
+        description: `${title} was added to your library.`,
+        color: 'success',
+        icon: 'i-lucide-check-circle'
+      })
+      return
+    }
+
+    importStatus.value = {
+      title: `${title} — Import failed`,
+      message: status.error ?? 'Import failed',
+      error: true,
+      progress: false
+    }
+    toast.add({
+      title: 'Import failed',
+      description: status.error ?? 'Import failed',
+      color: 'error',
+      icon: 'i-lucide-alert-circle'
+    })
+    return
+  }
+
+  importStatus.value = {
+    title: `${title} — Import timed out`,
+    message: 'Import is still running. Check the library shortly.',
+    error: false,
+    progress: false
+  }
+}
+
 async function triggerImport(manga: MangaDexResult) {
   importingId.value = manga.id
-  importStatus.value = { title: manga.title, message: 'Importing...', error: false }
+  importStatus.value = { title: manga.title, message: 'Queuing import...', error: false, progress: true }
 
   try {
     const { jobId } = await $fetch<{ jobId: string }>('/api/mangadex/import', {
       method: 'POST',
-      body: { mangaDexId: manga.id },
+      body: { mangaDexId: manga.id }
     })
 
-    const message = `Import complete (job ${jobId.slice(0, 8)}). Check your library.`
-    importStatus.value = {
-      title: manga.title,
-      message,
-      error: false,
-    }
-    toast.add({
-      title: 'Import complete',
-      description: `${manga.title} was added to your library.`,
-      color: 'success',
-      icon: 'i-lucide-check-circle',
-    })
+    await pollImportStatus(jobId, manga.title)
   } catch (err) {
     const message = getFetchErrorMessage(err)
     importStatus.value = {
       title: `${manga.title} — Import failed`,
       message,
       error: true,
+      progress: false
     }
     toast.add({
       title: 'Import failed',
       description: message,
       color: 'error',
-      icon: 'i-lucide-alert-circle',
+      icon: 'i-lucide-alert-circle'
     })
   } finally {
     importingId.value = null

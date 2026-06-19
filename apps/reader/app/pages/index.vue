@@ -13,7 +13,7 @@
         Go to Library
       </UButton>
       <UButton size="xl" variant="outline" color="neutral" to="/search" icon="i-lucide-search">
-        Search Manga
+        Discover manga
       </UButton>
     </div>
   </UContainer>

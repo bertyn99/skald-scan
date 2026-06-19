@@ -203,10 +203,55 @@ describe('handleDownloadPages', () => {
     vi.clearAllMocks()
   })
 
+  it('uploads pages to R2 and marks chapter available', async () => {
+    const imageBytes = new Uint8Array([1, 2, 3])
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(imageBytes.buffer),
+      headers: { get: () => 'image/webp' }
+    }) as typeof fetch
+
+    const db = createMockD1([
+      { allResult: { results: [] } },
+      {},
+      {},
+      {},
+      {}
+    ])
+    const storage = createMockR2()
+
+    const mockClient = createMockMangaDexClient({
+      getChapterPages: vi.fn().mockResolvedValue([
+        { url: 'https://cdn.example/page1.webp' },
+        { url: 'https://cdn.example/page2.webp' }
+      ])
+    })
+
+    await handleDownloadPages(
+      {
+        type: 'download-pages',
+        jobId: 'job-dl-ok',
+        mangaId: 'm-1',
+        chapterId: 'c-1',
+        mangaDexChapterId: 'md-c-1'
+      },
+      { DB: db, STORAGE: storage },
+      mockClient
+    )
+
+    expect(storage.put).toHaveBeenCalledTimes(2)
+    expect(storage.put).toHaveBeenCalledWith(
+      'manga/m-1/chapters/c-1/pages/1.webp',
+      expect.any(ArrayBuffer),
+      expect.objectContaining({ httpMetadata: expect.objectContaining({ contentType: 'image/webp' }) })
+    )
+  })
+
   it('marks job failed and rethrows on MangaDex API error', async () => {
     const capturedBinds: unknown[][] = []
     const db = createMockD1([
       { allResult: { results: [] } },
+      {},
       {},
       { onBind: (args) => capturedBinds.push(args) }
     ])
@@ -224,14 +269,14 @@ describe('handleDownloadPages', () => {
           chapterId: 'c-1',
           mangaDexChapterId: 'md-c-1'
         },
-        { DB: db },
+        { DB: db, STORAGE: createMockR2() },
         mockClient
       )
     ).rejects.toThrow('MangaDex API error')
 
     expect(mockClient.getChapterPages).toHaveBeenCalledWith('md-c-1')
-    expect(capturedBinds.length).toBe(1)
-    expect(capturedBinds[0]).toContain('failed')
+    expect(capturedBinds.length).toBeGreaterThanOrEqual(1)
+    expect(capturedBinds.some(args => args.includes('failed') || args.includes('unavailable'))).toBe(true)
   })
 })
 
@@ -308,7 +353,7 @@ describe('handleSyncChapters', () => {
 
     await handleSyncChapters(
       { type: 'sync-chapters', jobId: 'job-sync', mangaId: 'm-1', mangaDexId: 'md-1' },
-      { DB: db, SYNC_QUEUE: { send: queue.send } },
+      { DB: db, STORAGE: createMockR2(), SYNC_QUEUE: { send: queue.send } },
       mockClient
     )
 

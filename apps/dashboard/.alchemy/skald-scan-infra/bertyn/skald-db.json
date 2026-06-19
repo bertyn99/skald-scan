@@ -43,6 +43,14 @@
       {
         "id": "0003_manga_fts.sql",
         "hash": "786d5b7ad2eccd90f50d6c25f7196164679c6e6f80ae858e20492652fc8ab7b7"
+      },
+      {
+        "id": "0004_manga_dex_remote_chapter_count.sql",
+        "hash": "ee97d4edc2ca7e18618a402cf3314af395319c0b6d8a0d7994e0634f92075f97"
+      },
+      {
+        "id": "0005_better_auth_tables.sql",
+        "hash": "af7225b07b60f0adc9fd6256b5d3ad72ca26c207a813e63cc003257e7c44baba"
       }
     ],
     "importFiles": [],

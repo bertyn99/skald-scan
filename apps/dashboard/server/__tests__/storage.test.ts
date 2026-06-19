@@ -164,6 +164,9 @@ describe('storage + manga APIs', () => {
       {
         allResult: { results: [{ id: 'c1', mangaId: 'm1' }] },
         onBind: (args) => expect(args).toEqual(['m1'])
+      },
+      {
+        firstResult: null
       }
     ])
 

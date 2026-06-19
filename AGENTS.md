@@ -9,8 +9,8 @@ pnpm + Turborepo monorepo for a self-hosted manga reader. Two Nuxt 3 apps deploy
 ## Layout
 
 ```
-apps/dashboard   Admin/auth app (port 3000). Nuxt 3 + Better Auth + Drizzle. Owns all write paths.
-apps/reader      Public reader app (port 3001). Nuxt 3, no auth. Proxies /api/proxy/* to dashboard.
+apps/dashboard   Admin ops app (port 3000). Nuxt 3 + Better Auth + Drizzle. Owns all API routes.
+apps/reader      End-user reader (port 3001). Client auth via Bearer; proxies `/api/proxy/*` → dashboard `/api/*`.
 packages/shared  @skald-scan/shared: Drizzle schema, enums, MangaDex client, types. Source-of-truth for the DB.
 alchemy.run.ts   Root IaC: provisions DB (D1), STORAGE (R2), SESSIONS (KV), SYNC_QUEUE (Queue).
                  Dashboard/reader each import these bindings in their own alchemy.run.ts.
@@ -45,7 +45,7 @@ pnpm exec turbo run test --filter=dashboard
 pnpm exec turbo run build --filter=reader
 ```
 
-CI (`.github/workflows/ci.yml`) only runs `lint` + `typecheck`. There is no test job in CI. Node 22, pnpm cached.
+CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, and `test`. Node 22, pnpm cached.
 
 ## Turborepo task graph
 
@@ -64,19 +64,13 @@ Bindings are defined in root `alchemy.run.ts` and attached to each app in `apps/
 | `SESSIONS` | KV (`skald-scan-<stage>-sessions`) | dashboard |
 | `SYNC_QUEUE` | Queue (`skald-scan-<stage>-sync-queue`) | dashboard |
 
-**Stage / naming**: resource names are `skald-scan-${app.stage}-<suffix>`. `app.stage` defaults to `$USER` (or `"dev"` if unset) — set `ALCHEMY_STAGE` env to deploy a deterministic environment. Two devs on the same Cloudflare account will create *different* resources by default.
+Deploy secrets for dashboard: `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `READER_URL` (see `.env.example`).
 
-**Known binding-name inconsistency (bug, do not "fix" blindly)**: the infra exports the queue as `SYNC_QUEUE`, but several dashboard files still read `event.context.cloudflare.env.MANGADEX_SYNC_QUEUE`:
+**Queue binding**: production code uses `SYNC_QUEUE` via `getSyncQueueFromEvent` / `dispatchSyncQueueMessage`. Legacy `MANGADEX_SYNC_QUEUE` references remain only in some test fixtures.
 
-- `server/api/mangadex/import.post.ts`
-- `server/cron/sync-check.ts`
-- `server/services/import-manga.ts`
-- `server/services/sync-chapters.ts` (imports it)
-- test fixtures in `server/__tests__/sync-engine.test.ts`
+**Queue handler**: `server/plugins/queue-handler.ts` handles `import-manga`, `sync-chapters`, `download-pages`, and `extract-zip`. Dev inline processing is in `server/utils/sync-queue.ts` via `dispatchSyncQueueMessage`.
 
-While `server/api/cron/sync-chapters.ts`, `server/services/scheduled-sync.ts`, and `server/utils/storage.ts` correctly use `SYNC_QUEUE`. If you touch the queue flow, reconcile to `SYNC_QUEUE` (the alchemy truth) and update the affected tests — do not paper over it.
-
-**Known queue-handler gap (bug)**: `server/plugins/queue-handler.ts` only handles `'import-manga' | 'sync-chapters' | 'download-pages'`. `server/api/storage/upload-zip.post.ts` sends `{ type: 'extract-zip', ... }`, which falls through to the `default` branch and is silently logged as "Unknown queue message type". ZIP/CBZ upload flow is currently non-functional end-to-end. Implement `extract-zip` in the handler before claiming upload-zip works.
+**Scheduled sync**: Nitro `scheduledTasks` in `apps/dashboard/nuxt.config.ts` runs `server/tasks/sync-chapters.ts` (not an HTTP cron route).
 
 ## Runtime access pattern (dashboard server)
 
@@ -93,13 +87,23 @@ When adding a handler, reuse these; do not reach into `event.context.cloudflare.
 
 `apps/dashboard/server/utils/auth.ts` builds a Better Auth instance per-event via `getAuthFromEvent(event)`. It uses the Drizzle adapter against the shared `users`/`sessions` tables when `env.DB` is present, otherwise falls back to an in-memory adapter (used in tests / non-CF runtimes). `server/middleware/auth.ts` runs for everything except `/api/auth/**` and attaches `event.context.auth` + `event.context.authSession`. The `H3EventContext` augmentation lives in `server/types/auth.d.ts` — if you add fields to `authSession`, update that declaration.
 
-`apps/dashboard/lib/auth.ts` is the browser-side Better Auth client (`basePath: '/api/auth'`).
+`apps/dashboard/lib/auth.ts` is the browser-side Better Auth client (`basePath: '/api/auth'`). Dashboard is **admin-only** (`middleware: 'admin'`). Reader/mobile use Bearer token against the same `/api/auth` endpoints.
+
+## API tiers (dashboard server)
+
+| Tier | Examples | Who |
+|---|---|---|
+| Public catalog | `GET /api/manga`, pages, cover, `GET /api/health` | Anyone |
+| User | `GET/PUT /api/reading-progress`, `GET/POST /api/collections` | Authenticated `reader` (Bearer or cookie) |
+| Admin | `/api/manga` writes, `/api/mangadex/*`, `/api/storage/*`, `/api/admin/*` | `admin` role only |
+
+Reader proxy: `/api/proxy/<path>` → `dashboardUrl/api/<path>` (proxy normalizes missing `/api` prefix).
 
 ## Drizzle / migrations
 
 - Schema lives in `packages/shared/src/schema.ts` — single source of truth.
 - Dialect: `sqlite` (D1). Enums are string literals from `packages/shared/src/constants.ts`.
-- Generate migrations from the shared package: `pnpm --filter @skald-scan/shared generate` (runs `drizzle-kit generate`). Output goes to `packages/shared/drizzle/`. Existing migrations are committed (`0000`…`0002`).
+- Generate migrations from the shared package: `pnpm --filter @skald-scan/shared generate` (runs `drizzle-kit generate`). Output goes to `packages/shared/drizzle/`. Existing migrations are committed (`0000`…`0005`).
 - `manga_fts` is a **manual FTS5 virtual table** with triggers (`mangaFtsSql` / `mangaFtsStatements` in schema.ts) — it is NOT managed by drizzle-kit. Apply those raw statements separately if you set up a fresh DB.
 - `processedJobs` table is the idempotency store for queue workers — every worker must check it before doing work (see `handleImportManga`).
 

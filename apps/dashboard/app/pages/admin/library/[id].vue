@@ -31,6 +31,22 @@
             {{ mangaData.status }}
           </UBadge>
           <UButton
+            icon="i-lucide-upload"
+            variant="outline"
+            color="neutral"
+            label="Upload chapter"
+            @click="showZipUpload = true"
+          />
+          <UButton
+            v-if="mangaData.mangaDexId"
+            icon="i-lucide-refresh-cw"
+            variant="outline"
+            color="neutral"
+            label="Sync now"
+            :loading="syncing"
+            @click="triggerSync"
+          />
+          <UButton
             v-if="!editing"
             icon="i-lucide-pencil"
             variant="outline"
@@ -38,21 +54,35 @@
             label="Edit metadata"
             @click="startEditing"
           />
+          <UButton
+            icon="i-lucide-trash-2"
+            variant="outline"
+            color="error"
+            label="Delete"
+            @click="showDeleteModal = true"
+          />
         </template>
       </UPageHeader>
 
       <UPageBody class="space-y-8">
         <div class="flex flex-col md:flex-row gap-6">
-          <div class="w-40 h-56 rounded-lg overflow-hidden bg-muted shrink-0 ring ring-default">
-            <img
-              v-if="mangaData.coverUrl"
-              :src="mangaData.coverUrl"
-              :alt="mangaData.title"
-              class="w-full h-full object-cover"
-            >
-            <div v-else class="w-full h-full flex items-center justify-center">
-              <UIcon name="i-lucide-image" class="size-8 text-muted" />
+          <div class="space-y-3 shrink-0">
+            <div class="w-40 h-56 rounded-lg overflow-hidden bg-muted ring ring-default">
+              <img
+                v-if="displayCoverUrl"
+                :src="displayCoverUrl"
+                :alt="mangaData.title"
+                class="w-full h-full object-cover"
+              >
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <UIcon name="i-lucide-image" class="size-8 text-muted" />
+              </div>
             </div>
+            <AdminUploadDropzone
+              accept="image/*"
+              :max-size="5 * 1024 * 1024"
+              @upload="handleCoverUpload"
+            />
           </div>
 
           <div class="flex-1 min-w-0">
@@ -73,6 +103,19 @@
                 <span>{{ mangaData.chapterCount }} chapters</span>
                 <span>Added {{ formatDate(mangaData.createdAt) }}</span>
                 <span>Updated {{ formatDate(mangaData.updatedAt) }}</span>
+                <a
+                  v-if="mangaData.mangaDexId"
+                  :href="`https://mangadex.org/title/${mangaData.mangaDexId}`"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  <UIcon name="i-lucide-external-link" class="size-3" />
+                  MangaDex
+                </a>
+                <span v-if="syncInfo?.lastSyncedAt">
+                  Last synced {{ formatDate(syncInfo.lastSyncedAt) }}
+                </span>
               </div>
 
               <div v-if="mangaData.tags" class="flex flex-wrap gap-1.5">
@@ -125,6 +168,12 @@
           </div>
         </div>
 
+        <AdminChapterImportStats
+          v-if="mangaData.mangaDexId && chapterStats"
+          :stats="chapterStats"
+          :sync="syncInfo"
+        />
+
         <section class="space-y-4">
           <div>
             <h2 class="text-base font-semibold text-highlighted">Chapters</h2>
@@ -136,23 +185,80 @@
         </section>
       </UPageBody>
     </template>
+
+    <UModal v-model:open="showZipUpload" title="Upload chapter ZIP">
+      <template #body>
+        <div class="space-y-4">
+          <UFormField label="Chapter number" required>
+            <UInput v-model.number="zipChapterNumber" type="number" min="1" class="max-w-32" />
+          </UFormField>
+          <AdminUploadDropzone
+            accept=".zip,.cbz"
+            :max-size="100 * 1024 * 1024"
+            :disabled="zipUploading"
+            @upload="handleZipUpload"
+          />
+          <UAlert
+            v-if="zipStatus"
+            :color="zipStatus.success ? 'success' : 'info'"
+            variant="subtle"
+            :title="zipStatus.message"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal v-model:open="showDeleteModal" title="Delete manga">
+      <template #body>
+        <p class="text-sm text-toned">
+          Soft-delete <strong>{{ mangaData?.title }}</strong>? It will be removed from the library.
+        </p>
+      </template>
+      <template #footer>
+        <UButton variant="outline" color="neutral" @click="showDeleteModal = false">
+          Cancel
+        </UButton>
+        <UButton color="error" :loading="deleting" @click="confirmDelete">
+          Delete
+        </UButton>
+      </template>
+    </UModal>
   </UPage>
 </template>
 
 <script setup lang="ts">
-import type { MangaFull, ChapterSummary } from '@skald-scan/shared'
+import type {
+  ChapterImportStats,
+  ChapterSummary,
+  MangaFull,
+  MangaSyncInfo
+} from '@skald-scan/shared'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
+const router = useRouter()
+const toast = useToast()
 const mangaId = route.params.id as string
 
 useHead({ title: 'Manga Detail — Skald Scan Dashboard' })
 
-const { data: response, pending, error, refresh } = await useFetch<{ manga: MangaFull; chapters: ChapterSummary[] }>(`/api/manga/${mangaId}`)
+type MangaDetailResponse = {
+  manga: MangaFull
+  chapters: ChapterSummary[]
+  sync: MangaSyncInfo | null
+  chapterStats: ChapterImportStats
+}
+
+const { data: response, pending, error, refresh } = await useFetch<MangaDetailResponse>(`/api/manga/${mangaId}`)
 
 const mangaData = computed(() => response.value?.manga)
 const chapters = computed(() => response.value?.chapters ?? [])
+const syncInfo = computed(() => response.value?.sync ?? null)
+const chapterStats = computed(() => response.value?.chapterStats ?? null)
+const displayCoverUrl = computed(() =>
+  mangaData.value ? mangaCoverUrl(mangaData.value.id, mangaData.value.coverUrl) : null
+)
 
 const breadcrumbItems = computed(() => [
   { label: 'Library', to: '/admin/library', icon: 'i-lucide-library' },
@@ -161,6 +267,14 @@ const breadcrumbItems = computed(() => [
 
 const editing = ref(false)
 const saving = ref(false)
+const syncing = ref(false)
+const deleting = ref(false)
+const showZipUpload = ref(false)
+const showDeleteModal = ref(false)
+const zipChapterNumber = ref(1)
+
+const mangaIdRef = computed(() => mangaId)
+const { uploading: zipUploading, status: zipStatus, uploadChapterZip } = useChapterZipUpload(mangaIdRef)
 
 const statusOptions = [
   { label: 'Ongoing', value: 'ongoing' },
@@ -210,10 +324,56 @@ async function saveMetadata() {
     })
     editing.value = false
     await refresh()
+    toast.add({ title: 'Metadata saved', color: 'success' })
   } catch (err) {
-    console.error('Failed to save metadata:', err)
+    toast.add({ title: 'Save failed', description: (err as Error).message, color: 'error' })
   } finally {
     saving.value = false
+  }
+}
+
+async function triggerSync() {
+  syncing.value = true
+  try {
+    await $fetch(`/api/manga/${mangaId}/sync`, { method: 'POST' })
+    toast.add({ title: 'Sync queued', color: 'success' })
+    await refresh()
+  } catch (err) {
+    toast.add({ title: 'Sync failed', description: (err as Error).message, color: 'error' })
+  } finally {
+    syncing.value = false
+  }
+}
+
+async function handleCoverUpload(file: File) {
+  try {
+    await uploadMangaCover(mangaId, file)
+    await refresh()
+    toast.add({ title: 'Cover uploaded', color: 'success' })
+  } catch (err) {
+    toast.add({ title: 'Cover upload failed', description: (err as Error).message, color: 'error' })
+  }
+}
+
+async function handleZipUpload(file: File) {
+  const chapterId = await uploadChapterZip(file, zipChapterNumber.value)
+  if (chapterId) {
+    await refresh()
+    showZipUpload.value = false
+  }
+}
+
+async function confirmDelete() {
+  deleting.value = true
+  try {
+    await $fetch(`/api/manga/${mangaId}`, { method: 'DELETE' })
+    toast.add({ title: 'Manga deleted', color: 'success' })
+    await router.push('/admin/library')
+  } catch (err) {
+    toast.add({ title: 'Delete failed', description: (err as Error).message, color: 'error' })
+  } finally {
+    deleting.value = false
+    showDeleteModal.value = false
   }
 }
 
@@ -236,7 +396,7 @@ function parseTags(tags: string | null): string[] {
   try {
     return JSON.parse(tags)
   } catch {
-    return []
+    return tags.split(',').map(t => t.trim()).filter(Boolean)
   }
 }
 </script>

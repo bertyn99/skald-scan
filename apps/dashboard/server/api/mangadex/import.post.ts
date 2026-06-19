@@ -1,7 +1,7 @@
 import type { TriggerImportRequest, TriggerImportResponse } from '@skald-scan/shared'
 import { createError, defineEventHandler } from 'h3'
 
-import { getDatabaseFromEvent, getSyncQueueFromEvent, readEventBody, requireAdminRole } from '../../utils/storage'
+import { getDatabaseFromEvent, getStorageFromEvent, getSyncQueueFromEvent, readEventBody, requireAdminRole } from '../../utils/storage'
 import { dispatchSyncQueueMessage } from '../../utils/sync-queue'
 
 export default defineEventHandler(async (event): Promise<TriggerImportResponse> => {
@@ -18,7 +18,8 @@ export default defineEventHandler(async (event): Promise<TriggerImportResponse> 
     await dispatchSyncQueueMessage(
       {
         DB: getDatabaseFromEvent(event),
-        SYNC_QUEUE: getSyncQueueFromEvent(event),
+        STORAGE: getStorageFromEvent(event),
+        SYNC_QUEUE: getSyncQueueFromEvent(event)
       },
       {
         type: 'import-manga',

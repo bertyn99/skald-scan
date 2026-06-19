@@ -3,13 +3,13 @@ import { chapters, ChapterStatus, pages, processedJobs } from '@skald-scan/share
 import { drizzle } from 'drizzle-orm/d1'
 import { eq } from 'drizzle-orm'
 
-import { buildPageR2Key } from '../utils/storage'
+import { buildPageR2Key, type StorageBucketBinding } from '../utils/storage'
 
 type D1Database = Parameters<typeof drizzle>[0]
 
 export type ExtractZipEnv = {
   DB: D1Database
-  STORAGE: R2Bucket
+  STORAGE: StorageBucketBinding
 }
 
 export type ExtractZipMessage = {
@@ -97,7 +97,9 @@ export async function handleExtractZip(
       throw new Error(`ZIP not found in R2 at key: ${message.tempR2Key}`)
     }
 
-    const arrayBuffer = await zipObject.arrayBuffer()
+    const arrayBuffer = zipObject.body
+      ? await new Response(zipObject.body).arrayBuffer()
+      : new ArrayBuffer(0)
     const decompressed = unzipSync(new Uint8Array(arrayBuffer))
 
     const imageEntries = orderEntries(
@@ -120,7 +122,9 @@ export async function handleExtractZip(
     }> = []
 
     for (let index = 0; index < imageEntries.length; index++) {
-      const [fileName, fileData] = imageEntries[index]
+      const entry = imageEntries[index]
+      if (!entry) continue
+      const [fileName, fileData] = entry
       const pageNumber = index + 1
       const r2Key = buildPageR2Key(message.mangaId, message.chapterId, pageNumber)
       const contentType = detectContentType(fileName)
@@ -151,7 +155,9 @@ export async function handleExtractZip(
       })
       .where(eq(chapters.id, message.chapterId))
 
-    await env.STORAGE.delete(message.tempR2Key)
+    if (env.STORAGE.delete) {
+      await env.STORAGE.delete(message.tempR2Key)
+    }
 
     await db.update(processedJobs)
       .set({

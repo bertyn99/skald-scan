@@ -1,6 +1,7 @@
-import { chapters, manga } from '@skald-scan/shared'
+import { chapters, manga, mangaDexSync } from '@skald-scan/shared'
+import { ChapterStatus } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { eq, asc } from 'drizzle-orm'
+import { eq, asc, and, isNull } from 'drizzle-orm'
 import { createError, defineEventHandler, setResponseHeader } from 'h3'
 
 import { getDatabaseFromEvent, readEventParam } from '../../utils/storage'
@@ -28,9 +29,9 @@ export default defineEventHandler(async (event) => {
     createdAt: manga.createdAt,
     updatedAt: manga.updatedAt
   })
-  .from(manga)
-  .where(eq(manga.id, mangaId))
-  .get()
+    .from(manga)
+    .where(and(eq(manga.id, mangaId), isNull(manga.deletedAt)))
+    .get()
 
   if (!item) {
     throw createError({ statusCode: 404, statusMessage: 'Manga not found' })
@@ -42,20 +43,46 @@ export default defineEventHandler(async (event) => {
     chapterNumber: chapters.chapterNumber,
     language: chapters.language,
     pagesCount: chapters.pagesCount,
-    status: chapters.status,
+    status: chapters.status
   })
-  .from(chapters)
-  .where(eq(chapters.mangaId, mangaId))
-  .orderBy(asc(chapters.chapterNumber))
-  .all()
+    .from(chapters)
+    .where(eq(chapters.mangaId, mangaId))
+    .orderBy(asc(chapters.chapterNumber))
+    .all()
+
+  const syncRow = await db.select({
+    syncStatus: mangaDexSync.syncStatus,
+    lastSyncedAt: mangaDexSync.lastSyncedAt,
+    lastError: mangaDexSync.lastError,
+    remoteChapterCount: mangaDexSync.remoteChapterCount
+  })
+    .from(mangaDexSync)
+    .where(eq(mangaDexSync.mangaId, mangaId))
+    .get()
+
+  const imported = chapterItems.filter(c => c.status === ChapterStatus.Available).length
+  const importing = chapterItems.filter(c => c.status === ChapterStatus.Processing).length
+  const total = syncRow?.remoteChapterCount ?? chapterItems.length
 
   setResponseHeader(event, 'Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
 
   return {
     manga: {
       ...item,
-      chapterCount: chapterItems.length,
+      chapterCount: chapterItems.length
     },
     chapters: chapterItems,
+    sync: syncRow
+      ? {
+          status: syncRow.syncStatus,
+          lastSyncedAt: syncRow.lastSyncedAt ?? null,
+          lastError: syncRow.lastError ?? null
+        }
+      : null,
+    chapterStats: {
+      importing,
+      imported,
+      total
+    }
   }
 })

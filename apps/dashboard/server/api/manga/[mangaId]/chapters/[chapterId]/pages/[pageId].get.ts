@@ -1,7 +1,7 @@
 import { pages } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
 import { eq, and } from 'drizzle-orm'
-import { createError, defineEventHandler, getQuery } from 'h3'
+import { createError, defineEventHandler, getQuery, sendRedirect } from 'h3'
 
 import {
   buildPageR2Key,
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
 
   const database = getDatabaseFromEvent(event)
   const db = drizzle(database)
-  const pageRecord = await db.select({ r2Key: pages.r2Key })
+  const pageRecord = await db.select({ r2Key: pages.r2Key, imageUrl: pages.imageUrl })
     .from(pages)
     .where(and(eq(pages.chapterId, chapterId), eq(pages.pageNumber, pageNumber)))
     .get()
@@ -51,6 +51,9 @@ export default defineEventHandler(async (event) => {
 
   const object = await storage.get(pageKey)
   if (!object?.body) {
+    if (pageRecord?.imageUrl) {
+      return sendRedirect(event, pageRecord.imageUrl, 302)
+    }
     throw createError({ statusCode: 404, statusMessage: 'Page image not found' })
   }
 

@@ -29,6 +29,7 @@ vi.mock('drizzle-orm', () => ({
   asc: vi.fn((_col) => 'asc'),
   not: vi.fn((_val) => 'not'),
   isNull: vi.fn((_col) => 'isNull'),
+  or: vi.fn((..._args) => 'or'),
 }))
 
 vi.mock('@skald-scan/shared', () => ({

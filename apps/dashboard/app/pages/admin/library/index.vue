@@ -55,13 +55,36 @@
 
       <div
         v-else
-        class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+        class="space-y-6"
       >
-        <AdminMangaAdminCard
-          v-for="manga in mangaList"
-          :key="manga.id"
-          :manga="manga"
-        />
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <AdminMangaAdminCard
+            v-for="manga in mangaList"
+            :key="manga.id"
+            :manga="manga"
+          />
+        </div>
+        <div v-if="total > limit" class="flex justify-center gap-2">
+          <UButton
+            variant="outline"
+            color="neutral"
+            :disabled="offset === 0"
+            @click="prevPage"
+          >
+            Previous
+          </UButton>
+          <span class="text-sm text-muted self-center tabular-nums">
+            {{ offset + 1 }}–{{ Math.min(offset + limit, total) }} of {{ total }}
+          </span>
+          <UButton
+            variant="outline"
+            color="neutral"
+            :disabled="offset + limit >= total"
+            @click="nextPage"
+          >
+            Next
+          </UButton>
+        </div>
       </div>
     </UPageBody>
   </UPage>
@@ -71,7 +94,7 @@
 import type { ButtonProps } from '@nuxt/ui'
 import type { MangaListItem } from '@skald-scan/shared'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 useHead({ title: 'Library — Skald Scan Dashboard' })
 
@@ -90,18 +113,42 @@ const statusOptions = [
   { label: 'Cancelled', value: 'cancelled' }
 ]
 
-const { data: response, pending, error, refresh } = await useFetch<{ manga: MangaListItem[] }>('/api/manga', {
+const limit = ref(50)
+const offset = ref(0)
+
+const { data: response, pending, error, refresh } = await useFetch<{
+  manga: MangaListItem[]
+  total: number
+  limit: number
+  offset: number
+}>('/api/manga', {
   query: computed(() => ({
     q: search.value || undefined,
-    status: statusFilter.value || undefined
+    status: statusFilter.value || undefined,
+    limit: limit.value,
+    offset: offset.value
   }))
 })
 
 const mangaList = computed(() => response.value?.manga ?? [])
+const total = computed(() => response.value?.total ?? 0)
+
+function prevPage() {
+  offset.value = Math.max(0, offset.value - limit.value)
+  refresh()
+}
+
+function nextPage() {
+  offset.value = offset.value + limit.value
+  refresh()
+}
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 function debouncedRefresh() {
   if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => refresh(), 300)
+  debounceTimer = setTimeout(() => {
+    offset.value = 0
+    refresh()
+  }, 300)
 }
 </script>

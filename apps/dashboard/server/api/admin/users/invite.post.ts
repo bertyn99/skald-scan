@@ -34,6 +34,6 @@ export default defineEventHandler(async (event): Promise<InviteResponse> => {
     email,
     token,
     expiresAt,
-    signupUrl: `/auth/sign-up?invite=${token}`
+    signupUrl: `/auth/sign-in?invite=${token}`
   }
 })

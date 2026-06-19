@@ -35,8 +35,8 @@ export async function handleImportManga(
     const status = mapMangaDexStatus(mdManga.attributes.status)
     const tags = mdManga.attributes.tags
       ?.map((tag) => tag.attributes.name.en ?? Object.values(tag.attributes.name)[0] ?? '')
-      .filter(Boolean)
-      .join(', ') ?? null
+      .filter(Boolean) ?? []
+    const tagsJson = tags.length > 0 ? JSON.stringify(tags) : null
 
     const author = await resolveRelationshipName(client, mdManga, 'author')
     const artist = await resolveRelationshipName(client, mdManga, 'artist')
@@ -60,7 +60,7 @@ export async function handleImportManga(
         mangaDexId: message.mangaDexId,
         author,
         artist,
-        tags,
+        tags: tagsJson,
         createdAt: now,
         updatedAt: now,
       })
@@ -73,7 +73,7 @@ export async function handleImportManga(
           status,
           author,
           artist,
-          tags,
+          tags: tagsJson,
           updatedAt: now,
         })
         .where(eq(manga.id, mangaId))
@@ -124,7 +124,7 @@ export async function handleImportManga(
         .where(eq(mangaDexSync.mangaId, mangaId))
     }
 
-    await completeQueueJob(env.DB, message.jobId)
+    await completeQueueJob(env.DB, message.jobId, { mangaId })
   } catch (error) {
     await failQueueJob(env.DB, message.jobId, error)
     throw error

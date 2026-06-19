@@ -60,11 +60,11 @@ const columns: TableColumn<ChapterSummary>[] = [
   }
 ]
 
-function chapterStatusColor(status: string): 'success' | 'primary' | 'error' | 'neutral' {
+function chapterStatusColor(status: string): 'success' | 'primary' | 'error' | 'neutral' | 'warning' {
   switch (status) {
-    case 'ready': return 'success'
-    case 'downloading': return 'primary'
-    case 'error': return 'error'
+    case 'available': return 'success'
+    case 'processing': return 'primary'
+    case 'unavailable': return 'error'
     default: return 'neutral'
   }
 }

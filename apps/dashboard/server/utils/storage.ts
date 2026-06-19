@@ -65,6 +65,7 @@ export type StorageBucketBinding = {
     }
   ) => Promise<unknown>
   get: (key: string) => Promise<StorageObject | null>
+  delete?: (key: string) => Promise<void>
   createPresignedUrl?: (key: string, options?: PresignedUrlOptions) => Promise<string | URL>
 }
 

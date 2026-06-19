@@ -2,9 +2,9 @@
   "kind": "cloudflare::Queue",
   "id": "skald-sync-queue",
   "fqn": "skald-scan-infra/bertyn/skald-sync-queue",
-  "seq": 3,
+  "seq": 4,
   "data": {},
-  "status": "created",
+  "status": "updated",
   "output": {
     "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
     "Symbol(alchemy::ResourceID)": "skald-sync-queue",
@@ -12,7 +12,7 @@
     "Symbol(alchemy::ResourceScope)": {
       "@scope": null
     },
-    "Symbol(alchemy::ResourceSeq)": 3,
+    "Symbol(alchemy::ResourceSeq)": 4,
     "type": "queue",
     "id": "",
     "name": "skald-scan-bertyn-sync-queue",
@@ -25,6 +25,24 @@
   },
   "props": {
     "name": "skald-scan-bertyn-sync-queue",
+    "dlq": {
+      "Symbol(alchemy::ResourceKind)": "cloudflare::Queue",
+      "Symbol(alchemy::ResourceID)": "skald-sync-dlq",
+      "Symbol(alchemy::ResourceFQN)": "skald-scan-infra/bertyn/skald-sync-dlq",
+      "Symbol(alchemy::ResourceScope)": {
+        "@scope": null
+      },
+      "Symbol(alchemy::ResourceSeq)": 3,
+      "type": "queue",
+      "id": "",
+      "name": "skald-scan-bertyn-sync-dlq",
+      "dev": {
+        "id": "skald-sync-dlq",
+        "remote": false
+      },
+      "createdOn": "2026-06-19T09:26:21.849Z",
+      "modifiedOn": "2026-06-19T09:26:21.849Z"
+    },
     "dev": {
       "force": true
     }

@@ -1,6 +1,6 @@
 import { chapters, manga, pages, sessions, users } from '@skald-scan/shared'
 import { drizzle } from 'drizzle-orm/d1'
-import { count, gt, sql } from 'drizzle-orm'
+import { count, gt, isNull, sql } from 'drizzle-orm'
 import { defineEventHandler, setResponseHeader } from 'h3'
 
 import { getDatabaseFromEvent, requireAdminRole } from '../../../utils/storage'
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     activeUsersCount,
     storageSum,
   ] = await Promise.all([
-    db.select({ count: count() }).from(manga).get(),
+    db.select({ count: count() }).from(manga).where(isNull(manga.deletedAt)).get(),
     db.select({ count: count() }).from(chapters).get(),
     db.select({ count: count() }).from(users).get(),
     db.select({ count: sql<number>`count(distinct ${sessions.userId})` })
