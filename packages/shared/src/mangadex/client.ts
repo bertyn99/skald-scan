@@ -44,12 +44,13 @@ export interface MangaSearchOptions {
   limit?: number
   offset?: number
   contentRating?: string[]
+  includes?: string[]
 }
 
 export interface MangaChapterOptions {
   limit?: number
   offset?: number
-  language?: string
+  language?: string | string[]
 }
 
 export class MangaDexClientError extends Error {
@@ -110,7 +111,10 @@ export class MangaDexClient {
       params.append('contentRating[]', rating)
     }
 
-    params.append('includes[]', 'cover_art')
+    const includes = options.includes ?? ['cover_art']
+    for (const include of includes) {
+      params.append('includes[]', include)
+    }
 
     return this.request<MangaDexSearchResponse<MangaDexManga>>('/manga', params)
   }
@@ -134,13 +138,46 @@ export class MangaDexClient {
       params.set('offset', String(options.offset))
     }
     if (options.language) {
-      params.append('translatedLanguage[]', options.language)
+      const langs = Array.isArray(options.language)
+        ? options.language
+        : [options.language]
+      for (const lang of langs) {
+        params.append('translatedLanguage[]', lang)
+      }
     }
 
     return this.request<MangaDexSearchResponse<MangaDexChapter>>(
       `/manga/${encodeURIComponent(mangaId)}/feed`,
       params,
     )
+  }
+
+  // Paginated fetch of every chapter across all configured languages.
+  // Fixes the latent bug where the default MangaDex feed limit (10) silently
+  // dropped everything past chapter 10. Page size intentionally below the 500
+  // server cap for gentler rate-limit behaviour.
+  async getAllMangaChapters(
+    mangaId: string,
+    options: Omit<MangaChapterOptions, 'offset' | 'limit'> = {},
+  ): Promise<{ data: MangaDexChapter[]; total: number }> {
+    const PAGE_SIZE = 100
+    const collected: MangaDexChapter[] = []
+    let offset = 0
+    let total = Number.POSITIVE_INFINITY
+
+    while (offset < total) {
+      const page = await this.getMangaChapters(mangaId, {
+        ...options,
+        limit: PAGE_SIZE,
+        offset,
+      })
+      collected.push(...page.data)
+      total = page.total
+      offset += page.data.length
+      if (page.data.length === 0) break
+    }
+
+    return { data: collected, total }
   }
 
   async getChapterPages(chapterId: string): Promise<MangaDexPage[]> {
@@ -205,11 +242,17 @@ export class MangaDexClient {
 
       this.captureRateLimitHeaders(response.headers)
 
-      if (response.status === 429) {
+      const isRetryableStatus = response.status === 429
+        || (response.status >= 500 && response.status < 600)
+
+      if (isRetryableStatus) {
         if (attempt >= this.maxRetries) {
+          const label = response.status === 429
+            ? `rate limit persisted after ${this.maxRetries} retries (429 Too Many Requests)`
+            : `server error ${response.status} persisted after ${this.maxRetries} retries`
           throw new MangaDexClientError(
-            `MangaDex rate limit persisted after ${this.maxRetries} retries (429 Too Many Requests)`,
-            429,
+            `MangaDex ${label}`,
+            response.status,
             (await this.readErrorBody(response)) ?? undefined,
           )
         }

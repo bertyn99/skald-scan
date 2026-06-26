@@ -49,6 +49,9 @@ import type { MangaListItem } from '@skald-scan/shared'
 
 useHead({ title: 'Discover — Skald Scan' })
 
+const { language, init } = useReaderLanguage()
+await init()
+
 const query = ref('')
 const lastQuery = ref('')
 const hasSearched = ref(false)
@@ -67,7 +70,7 @@ async function doSearch() {
 
   try {
     const response = await $fetch<{ manga: MangaListItem[] }>(dashboardApi('/manga'), {
-      params: { q }
+      params: { q, lang: language.value }
     })
     results.value = response.manga
   } catch {

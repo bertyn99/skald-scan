@@ -66,6 +66,8 @@ describe('schema', () => {
       id: 'user_1',
       email: 'reader@example.com',
       role: 'reader',
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
 
     const newChapter: InsertChapter = {

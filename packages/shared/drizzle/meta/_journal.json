@@ -5,44 +5,39 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1775596348114,
-      "tag": "0000_silly_professor_monster",
+      "when": 1781956003824,
+      "tag": "0000_initial",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1775596693037,
-      "tag": "0001_damp_shape",
+      "when": 1781956021968,
+      "tag": "0001_manga_fts",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "6",
-      "when": 1780590043284,
-      "tag": "0002_kind_felicia_hardy",
+      "when": 1781961961642,
+      "tag": "0002_translations",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "6",
-      "when": 1781730621365,
-      "tag": "0003_manga_fts",
-      "breakpoints": true
-    }
+      "when": 1781962000000,
+      "tag": "0003_translations_fts",
+      "breakpoints": true,
+      "manual": true
+    },
     {
       "idx": 4,
       "version": "6",
-      "when": 1782000000000,
-      "tag": "0004_manga_dex_remote_chapter_count",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1782100000000,
-      "tag": "0005_better_auth_tables",
-      "breakpoints": true
+      "when": 1781962100000,
+      "tag": "0004_backfill_translations",
+      "breakpoints": true,
+      "manual": true
     }
   ]
 }

@@ -37,7 +37,7 @@ export async function handleDownloadPages(
 
   try {
     await db.update(chapters)
-      .set({ status: ChapterStatus.Processing, updatedAt: Date.now() })
+      .set({ status: ChapterStatus.Processing })
       .where(eq(chapters.id, message.chapterId))
 
     const pagesData = await client.getChapterPages(message.mangaDexChapterId)
@@ -49,7 +49,6 @@ export async function handleDownloadPages(
       imageUrl: string
       r2Key: string
       fileSize: number
-      createdAt: number
     }> = []
 
     for (const [index, page] of pagesData.entries()) {
@@ -77,8 +76,7 @@ export async function handleDownloadPages(
         pageNumber,
         imageUrl: page.url,
         r2Key,
-        fileSize: imageBuffer.byteLength,
-        createdAt: Date.now()
+        fileSize: imageBuffer.byteLength
       })
     }
 
@@ -91,15 +89,14 @@ export async function handleDownloadPages(
     await db.update(chapters)
       .set({
         pagesCount: pageValues.length,
-        status: ChapterStatus.Available,
-        updatedAt: Date.now()
+        status: ChapterStatus.Available
       })
       .where(eq(chapters.id, message.chapterId))
 
     await completeQueueJob(env.DB, message.jobId, { pagesCount: pageValues.length })
   } catch (error) {
     await db.update(chapters)
-      .set({ status: ChapterStatus.Unavailable, updatedAt: Date.now() })
+      .set({ status: ChapterStatus.Unavailable })
       .where(eq(chapters.id, message.chapterId))
 
     await failQueueJob(env.DB, message.jobId, error)

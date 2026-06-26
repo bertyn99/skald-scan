@@ -1,4 +1,5 @@
 import type { TriggerImportRequest, TriggerImportResponse } from '@skald-scan/shared'
+import { parseLanguageList } from '@skald-scan/shared'
 import { createError, defineEventHandler } from 'h3'
 
 import { getDatabaseFromEvent, getStorageFromEvent, getSyncQueueFromEvent, readEventBody, requireAdminRole } from '../../utils/storage'
@@ -11,6 +12,9 @@ export default defineEventHandler(async (event): Promise<TriggerImportResponse> 
   if (!body?.mangaDexId || typeof body.mangaDexId !== 'string') {
     throw createError({ statusCode: 400, statusMessage: 'mangaDexId is required' })
   }
+
+  // Optional per-manga language override. Empty/invalid → DEFAULT_LANGUAGES.
+  const languages = body.languages ? parseLanguageList(body.languages) : undefined
 
   const jobId = crypto.randomUUID()
 
@@ -25,6 +29,7 @@ export default defineEventHandler(async (event): Promise<TriggerImportResponse> 
         type: 'import-manga',
         jobId,
         mangaDexId: body.mangaDexId,
+        ...(languages ? { languages } : {})
       },
     )
   } catch (error) {

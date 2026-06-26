@@ -16,6 +16,9 @@ export default defineNuxtConfig({
 
   nitro: {
     preset: "cloudflare_module",
+    experimental: {
+      tasks: true
+    },
     cloudflare: alchemy(),
     scheduledTasks: {
       "*/30 * * * *": ["sync-chapters"],

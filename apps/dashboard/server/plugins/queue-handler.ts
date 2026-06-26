@@ -13,17 +13,30 @@ type QueueHandlerEnv = {
   }
 }
 
+interface QueueMessage {
+  body: SyncQueueMessage
+  ack: () => void
+  // Explicit retry: re-queues the message for redelivery. Without this call,
+  // Cloudflare Queues auto-acks when the handler returns, so a transiently
+  // failed job is gone forever (the processed_jobs row is marked 'failed' but
+  // the work is never re-attempted).
+  retry: (options?: { delaySeconds?: number }) => void
+  attempts: number
+  id: string
+}
+
 interface QueuePayload {
   batch: {
-    messages: Array<{
-      body: SyncQueueMessage
-      ack: () => void
-      attempts: number
-      id: string
-    }>
+    messages: QueueMessage[]
   }
   env: QueueHandlerEnv
 }
+
+// Cloudflare Queues caps attempts at the consumer's max_retries setting.
+// Beyond that, messages go to the DLQ (if configured) or are dropped.
+// Retry with exponential-ish backoff up to a sane ceiling.
+const MAX_RETRIES_BEFORE_DEAD_LETTER = 3
+const RETRY_BASE_DELAY_SECONDS = 30
 
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('cloudflare:queue', async (payload: QueuePayload) => {
@@ -50,13 +63,34 @@ export default defineNitroPlugin((nitroApp) => {
         }
         message.ack()
       } catch (error) {
+        // message.attempts is 1-indexed: 1 on first delivery, 2 on first retry, etc.
+        // Treat "this delivery's attempt number" as the count of tries so far.
+        const attempts = message.attempts ?? 1
+        const willRetry = attempts <= MAX_RETRIES_BEFORE_DEAD_LETTER
+
         console.error(JSON.stringify({
-          level: 'error',
-          message: 'Queue message failed',
+          level: willRetry ? 'warn' : 'error',
+          message: willRetry
+            ? 'Queue message failed; retrying'
+            : 'Queue message exhausted retries; dead-lettering',
           jobId: message.body.jobId,
-          error: String(error),
-          retryCount: message.attempts
+          type: message.body.type,
+          attempts,
+          willRetry,
+          error: String(error)
         }))
+
+        if (willRetry) {
+          // Exponential backoff: 30s, 60s, 120s on attempts 1, 2, 3.
+          // Cloudflare clamps to its own per-queue delay ceiling (default 12h).
+          const delaySeconds = RETRY_BASE_DELAY_SECONDS * (2 ** (attempts - 1))
+          message.retry({ delaySeconds })
+        } else {
+          // Terminal: ack so the message leaves the queue. The handler already
+          // marked processed_jobs as 'failed' with the error string — operators
+          // inspect that table to find DLQ candidates.
+          message.ack()
+        }
       }
     }
   })

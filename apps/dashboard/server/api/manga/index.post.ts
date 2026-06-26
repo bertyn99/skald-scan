@@ -23,7 +23,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'title is required' })
   }
 
-  const now = Date.now()
   const record = {
     id: crypto.randomUUID(),
     title,
@@ -32,9 +31,7 @@ export default defineEventHandler(async (event) => {
     status: MangaStatus.Ongoing,
     author: body.author?.trim() || null,
     artist: body.artist?.trim() || null,
-    tags: body.tags?.trim() || null,
-    createdAt: now,
-    updatedAt: now
+    tags: body.tags?.trim() || null
   }
 
   const db = useDrizzle(event)

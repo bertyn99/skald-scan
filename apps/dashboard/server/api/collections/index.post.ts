@@ -16,7 +16,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'name is required' })
   }
 
-  const now = Date.now()
   const id = crypto.randomUUID()
   const db = useDrizzle(event)
 
@@ -24,10 +23,8 @@ export default defineEventHandler(async (event) => {
     id,
     userId,
     name,
-    description: body.description?.trim() || null,
-    createdAt: now,
-    updatedAt: now
+    description: body.description?.trim() || null
   })
 
-  return { item: { id, name, description: body.description ?? null, createdAt: now } }
+  return { item: { id, name, description: body.description ?? null } }
 })

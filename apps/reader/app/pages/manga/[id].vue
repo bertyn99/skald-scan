@@ -73,16 +73,38 @@
       <USeparator />
 
       <div class="space-y-3">
-        <h2 class="text-lg font-semibold">Chapters</h2>
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <h2 class="text-lg font-semibold">Chapters</h2>
 
-        <div v-if="chapters.length === 0" class="text-center py-8 text-muted-foreground">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-muted-foreground">Language</span>
+            <USelect
+              :model-value="selectedLanguage"
+              :items="languageOptions"
+              size="xs"
+              class="w-28"
+              @update:model-value="onLanguageChange"
+            />
+          </div>
+        </div>
+
+        <UAlert
+          v-if="languageFallback"
+          color="neutral"
+          variant="subtle"
+          icon="i-lucide-languages"
+          title="Translation unavailable"
+          description="No metadata for this language yet — showing English."
+        />
+
+        <div v-if="filteredChapters.length === 0" class="text-center py-8 text-muted-foreground">
           <UIcon name="i-lucide-list" class="w-8 h-8 mx-auto mb-2" />
-          <p>No chapters available yet.</p>
+          <p>No chapters available in {{ selectedLanguage.toUpperCase() }} yet.</p>
         </div>
 
         <div v-else class="space-y-1">
           <NuxtLink
-            v-for="chapter in sortedChapters"
+            v-for="chapter in filteredChapters"
             :key="chapter.id"
             :to="`/read/${mangaData.id}/${chapter.id}`"
             class="flex items-center justify-between px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors group"
@@ -106,17 +128,56 @@
 
 <script setup lang="ts">
 import type { MangaFull, ChapterSummary } from '@skald-scan/shared'
-import { ChapterStatus } from '@skald-scan/shared'
+import { ChapterStatus, Language } from '@skald-scan/shared'
 
 const route = useRoute()
 const mangaId = route.params.id as string
 
 useHead({ title: 'Manga — Skald Scan' })
 
-const { data: response, pending, error, refresh } = await useFetch<{ manga: MangaFull; chapters: ChapterSummary[] }>(`/api/proxy/manga/${mangaId}`)
+// Reader language resolution. init() runs on mount and may fetch /api/users/me.
+const { language: readerLanguage, init: initLanguage, setLanguage } = useReaderLanguage()
+await initLanguage()
+
+// Reactive URL ?lang= override; lets users deep-link to a specific language.
+const routeLang = computed(() => {
+  const v = route.query.lang
+  return typeof v === 'string' ? v : null
+})
+
+const selectedLanguage = computed<string>(() => routeLang.value ?? readerLanguage.value ?? Language.En)
+
+// Re-fetch when the language changes so the title/description localizes.
+const { data: response, pending, error, refresh } = await useFetch<{ manga: MangaFull; chapters: ChapterSummary[] }>(
+  () => `/api/proxy/manga/${mangaId}`,
+  { query: { lang: selectedLanguage } }
+)
 
 const mangaData = computed(() => response.value?.manga)
 const chapters = computed(() => response.value?.chapters ?? [])
+const languageFallback = computed(() => Boolean(mangaData.value?.languageFallback))
+
+// Show chapters for the selected language when available; otherwise show all.
+const filteredChapters = computed(() => {
+  const list = [...chapters.value].sort((a, b) => a.chapterNumber - b.chapterNumber)
+  const inLang = list.filter(c => c.language === selectedLanguage.value)
+  return inLang.length > 0 ? inLang : list
+})
+
+const languageOptions = computed(() => {
+  const available = new Set<string>(mangaData.value?.availableLanguages ?? [])
+  // Always offer the currently-selected language even if no metadata exists yet,
+  // plus EN as the canonical fallback.
+  available.add(selectedLanguage.value)
+  available.add(Language.En)
+  return [...available].map(code => ({ label: code.toUpperCase(), value: code }))
+})
+
+async function onLanguageChange(next: string): Promise<void> {
+  // Persist across sessions (cookie + user profile) and refresh the page data.
+  await setLanguage(next)
+  await refresh()
+}
 
 const sortedChapters = computed(() =>
   [...chapters.value].sort((a, b) => a.chapterNumber - b.chapterNumber)

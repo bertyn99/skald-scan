@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
 
   // Client-supplied timestamp; default to now so callers without an explicit
   // updatedAt are treated as fresh (preserves the original behaviour).
-  const clientUpdatedAt = body.updatedAt ?? Date.now()
+  const clientUpdatedAt = body.updatedAt ? new Date(body.updatedAt) : new Date()
 
   // Stale-client guard: if the server already has a newer entry for this
   // (user, chapter) pair, skip the overwrite entirely. Offline clients with an
@@ -52,17 +52,14 @@ export default defineEventHandler(async (event) => {
       chapterId,
       lastPageRead,
       read,
-      lastReadAt: clientUpdatedAt,
-      createdAt: clientUpdatedAt,
-      updatedAt: clientUpdatedAt
+      lastReadAt: clientUpdatedAt
     })
     .onConflictDoUpdate({
       target: [readingProgress.userId, readingProgress.chapterId],
       set: {
         lastPageRead,
         read,
-        lastReadAt: clientUpdatedAt,
-        updatedAt: clientUpdatedAt
+        lastReadAt: clientUpdatedAt
       }
     })
     .run()

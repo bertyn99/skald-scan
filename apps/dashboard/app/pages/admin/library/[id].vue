@@ -174,6 +174,47 @@
           :sync="syncInfo"
         />
 
+        <UCard v-if="mangaData.mangaDexId" variant="subtle">
+          <div class="space-y-3">
+            <div>
+              <h3 class="text-sm font-semibold">Mirrored languages</h3>
+              <p class="text-xs text-muted mt-0.5">
+                Languages synced from MangaDex for this title. Removing a language
+                soft-deletes its chapters and translations on next sync.
+              </p>
+            </div>
+            <USelectMenu
+              v-model="selectedLanguages"
+              :items="languageItems"
+              multiple
+              value-key="value"
+              label-key="label"
+              class="w-full"
+            />
+            <div class="flex items-center gap-2">
+              <UButton
+                size="xs"
+                color="primary"
+                :loading="savingLanguages"
+                :disabled="!languagesDirty"
+                @click="saveLanguages"
+              >
+                Save languages
+              </UButton>
+              <UButton
+                size="xs"
+                variant="outline"
+                color="neutral"
+                icon="i-lucide-refresh-cw"
+                :disabled="!languagesDirty"
+                @click="triggerSync"
+              >
+                Re-sync after save
+              </UButton>
+            </div>
+          </div>
+        </UCard>
+
         <section class="space-y-4">
           <div>
             <h2 class="text-base font-semibold text-highlighted">Chapters</h2>
@@ -185,6 +226,24 @@
         </section>
       </UPageBody>
     </template>
+
+    <UModal v-model:open="showLanguageRemovalConfirm" title="Confirm language removal">
+      <template #body>
+        <p class="text-sm text-toned">
+          Removing languages will soft-delete their chapters and translations on
+          the next sync. Page objects in R2 are reclaimed too. This cannot be
+          undone without re-importing.
+        </p>
+      </template>
+      <template #footer>
+        <UButton variant="outline" color="neutral" @click="cancelLanguageRemoval">
+          Cancel
+        </UButton>
+        <UButton color="error" @click="confirmLanguageRemoval">
+          Remove and re-sync
+        </UButton>
+      </template>
+    </UModal>
 
     <UModal v-model:open="showZipUpload" title="Upload chapter ZIP">
       <template #body>
@@ -233,6 +292,7 @@ import type {
   MangaFull,
   MangaSyncInfo
 } from '@skald-scan/shared'
+import { Language } from '@skald-scan/shared'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -250,7 +310,12 @@ type MangaDetailResponse = {
   chapterStats: ChapterImportStats
 }
 
-const { data: response, pending, error, refresh } = await useFetch<MangaDetailResponse>(`/api/manga/${mangaId}`)
+// Admin views always operate on canonical EN metadata — the edit form saves
+// to manga.title/description (canonical), so pre-filling with a localized
+// title would clobber the English canonical on save.
+const { data: response, pending, error, refresh } = await useFetch<MangaDetailResponse>(`/api/manga/${mangaId}`, {
+  query: { lang: 'en' }
+})
 
 const mangaData = computed(() => response.value?.manga)
 const chapters = computed(() => response.value?.chapters ?? [])
@@ -272,6 +337,74 @@ const deleting = ref(false)
 const showZipUpload = ref(false)
 const showDeleteModal = ref(false)
 const zipChapterNumber = ref(1)
+
+// Mirrored-languages management. The USelectMenu uses value-key="value" so
+// v-model receives the language codes directly as string[].
+type LanguageItem = { label: string; value: string }
+const selectedLanguages = ref<string[]>([])
+const savedLanguages = ref<string[]>([])
+const savingLanguages = ref(false)
+const showLanguageRemovalConfirm = ref(false)
+let pendingLanguageRemoval: (() => Promise<void>) | null = null
+
+const languageItems: LanguageItem[] = (Object.values(Language) as string[]).map(code => ({
+  label: code.toUpperCase(),
+  value: code
+}))
+
+const languagesDirty = computed(() => {
+  const a = [...selectedLanguages.value].sort()
+  const b = [...savedLanguages.value].sort()
+  return a.join(',') !== b.join(',')
+})
+
+watch(syncInfo, (info) => {
+  if (info?.languages) {
+    selectedLanguages.value = [...info.languages]
+    savedLanguages.value = [...info.languages]
+  }
+}, { immediate: true })
+
+async function saveLanguages() {
+  const removed = savedLanguages.value.filter(l => !selectedLanguages.value.includes(l))
+  if (removed.length > 0) {
+    // Defer the actual save behind the confirm modal.
+    pendingLanguageRemoval = doSaveLanguages
+    showLanguageRemovalConfirm.value = true
+    return
+  }
+  await doSaveLanguages()
+}
+
+async function doSaveLanguages() {
+  savingLanguages.value = true
+  showLanguageRemovalConfirm.value = false
+  try {
+    await $fetch(`/api/manga/${mangaId}/languages`, {
+      method: 'PUT',
+      body: { languages: selectedLanguages.value }
+    })
+    savedLanguages.value = [...selectedLanguages.value]
+    toast.add({ title: 'Languages updated; sync queued', color: 'success' })
+    await refresh()
+  } catch (err) {
+    toast.add({ title: 'Failed to save languages', description: (err as Error).message, color: 'error' })
+  } finally {
+    savingLanguages.value = false
+    pendingLanguageRemoval = null
+  }
+}
+
+async function cancelLanguageRemoval() {
+  // Restore the saved selection without writing.
+  selectedLanguages.value = [...savedLanguages.value]
+  showLanguageRemovalConfirm.value = false
+  pendingLanguageRemoval = null
+}
+
+async function confirmLanguageRemoval() {
+  if (pendingLanguageRemoval) await pendingLanguageRemoval()
+}
 
 const mangaIdRef = computed(() => mangaId)
 const { uploading: zipUploading, status: zipStatus, uploadChapterZip } = useChapterZipUpload(mangaIdRef)

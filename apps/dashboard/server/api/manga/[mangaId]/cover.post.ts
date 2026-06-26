@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
   const coverUrl = `/api/manga/${mangaId}/cover`
 
   await db.update(manga)
-    .set({ coverUrl, updatedAt: Date.now() })
+    .set({ coverUrl })
     .where(eq(manga.id, mangaId))
 
   return { coverUrl }

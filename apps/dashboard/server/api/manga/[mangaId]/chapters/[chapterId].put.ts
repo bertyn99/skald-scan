@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   const body = await readEventBody<UpdateChapterBody>(event)
   const db = useDrizzle(event)
 
-  const updates: Record<string, unknown> = { updatedAt: Date.now() }
+  const updates: Record<string, unknown> = {}
   if (body.title !== undefined) updates.title = body.title?.trim() || null
   if (typeof body.chapterNumber === 'number') updates.chapterNumber = body.chapterNumber
 

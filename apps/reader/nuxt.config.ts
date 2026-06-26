@@ -17,17 +17,17 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       dashboardUrl: 'http://localhost:3000',
+      // Used by the proxy to reflect the request Origin for authenticated CORS.
+      // Defaults to the deployed reader URL; override via NUXT_PUBLIC_READER_URL.
+      readerUrl: process.env.NUXT_PUBLIC_READER_URL ?? '',
     },
   },
 
   routeRules: {
     '/api/**': {
-      cors: true,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      },
+      // CORS is applied per-request in server/api/proxy/[...].ts so the
+      // Access-Control-Allow-Origin can reflect the request origin (not '*').
+      cors: false,
     },
   },
 

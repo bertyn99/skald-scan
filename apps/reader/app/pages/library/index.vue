@@ -45,11 +45,15 @@ import type { MangaListItem } from '@skald-scan/shared'
 
 useHead({ title: 'Library — Skald Scan' })
 
+const { language, init } = useReaderLanguage()
+await init()
+
 const search = ref('')
 
 const { data: response, pending, error, refresh } = await useFetch<{ manga: MangaListItem[] }>('/api/proxy/manga', {
   query: computed(() => ({
     q: search.value || undefined,
+    lang: language.value
   })),
 })
 

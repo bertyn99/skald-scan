@@ -30,13 +30,12 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = useDrizzle(event)
-  const now = Date.now()
 
   if (action === 'delete') {
     for (let i = 0; i < mangaIds.length; i += 50) {
       const chunk = mangaIds.slice(i, i + 50)
       await db.update(manga)
-        .set({ deletedAt: new Date(now), updatedAt: now })
+        .set({ deletedAt: new Date() })
         .where(inArray(manga.id, chunk))
     }
     return { action, count: mangaIds.length }
@@ -56,7 +55,7 @@ export default defineEventHandler(async (event) => {
       if (!record.mangaDexId) continue
       const jobId = crypto.randomUUID()
       await db.update(mangaDexSync)
-        .set({ syncStatus: SyncStatus.Syncing, updatedAt: now })
+        .set({ syncStatus: SyncStatus.Syncing })
         .where(eq(mangaDexSync.mangaId, record.id))
 
       await dispatchSyncQueueMessage(

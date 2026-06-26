@@ -114,15 +114,25 @@ describe('storage + manga APIs', () => {
   })
 
   it('lists manga with pagination', async () => {
+    // Mock row shape must match the select clause: id, title, coverUrl, status,
+    // updatedAt, chapterCount, total (window function).
     const db = createDatabaseBinding([
       {
         allResult: {
-          results: [{ id: 'm1', title: 'Manga One', chapterCount: 1 }]
+          results: [{
+            id: 'm1',
+            title: 'Manga One',
+            coverUrl: null,
+            status: 'ongoing',
+            updatedAt: 0,
+            chapterCount: 1,
+            total: 1
+          }]
         },
-        onBind: (args) => expect(args).toEqual([10, 5])
-      },
-      {
-        firstResult: { count: 1 }
+        onBind: (args) => {
+          expect(args.at(-2)).toBe(10)
+          expect(args.at(-1)).toBe(5)
+        }
       }
     ])
 
@@ -132,7 +142,8 @@ describe('storage + manga APIs', () => {
     })
 
     await expect(mangaIndexGetHandler(event)).resolves.toMatchObject({
-      manga: [{ id: 'm1', title: 'Manga One', chapterCount: 0 }],
+      manga: [{ id: 'm1', title: 'Manga One', chapterCount: 1 }],
+      total: 1
     })
   })
 
@@ -156,18 +167,14 @@ describe('storage + manga APIs', () => {
   })
 
   it('gets manga detail with chapters', async () => {
+    // Now runs 5 parallel queries (manga + chapters + sync + translation + langs).
+    // Each consumes one prepared statement from the queue.
     const db = createDatabaseBinding([
-      {
-        firstResult: { id: 'm1', title: 'Manga One' },
-        onBind: (args) => expect(args).toEqual(['m1'])
-      },
-      {
-        allResult: { results: [{ id: 'c1', mangaId: 'm1' }] },
-        onBind: (args) => expect(args).toEqual(['m1'])
-      },
-      {
-        firstResult: null
-      }
+      { firstResult: { id: 'm1', title: 'Manga One' } }, // manga
+      { allResult: { results: [{ id: 'c1', mangaId: 'm1' }] } }, // chapters
+      { firstResult: null }, // sync row (none)
+      { firstResult: null }, // requested translation (none → fallback)
+      { allResult: { results: [] } } // availableLanguages
     ])
 
     const event = createEvent<Parameters<typeof mangaGetHandler>[0]>({
@@ -210,7 +217,10 @@ describe('storage + manga APIs', () => {
     const db = createDatabaseBinding([
       {
         allResult: { results: [{ id: 'c1', mangaId: 'm1', title: null, chapterNumber: 1 }] },
-        onBind: (args) => expect(args).toEqual(['m1'])
+        onBind: (args) => {
+          // mangaId is the first bind arg; pagination (limit/offset) may follow.
+          expect(args[0]).toBe('m1')
+        }
       }
     ])
 

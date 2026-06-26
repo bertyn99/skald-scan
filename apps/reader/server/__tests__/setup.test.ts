@@ -7,6 +7,7 @@ vi.mock('h3', () => {
   return {
     defineEventHandler: vi.fn((handler) => handler),
     getMethod: vi.fn(() => 'GET'),
+    getHeader: vi.fn(() => null),
     getHeaders: vi.fn(() => ({ host: 'localhost', 'user-agent': 'test' })),
     readRawBody: vi.fn(),
     setResponseHeaders: vi.fn(),
@@ -17,7 +18,8 @@ vi.mock('h3', () => {
 // Mock useRuntimeConfig
 globalThis.useRuntimeConfig = vi.fn(() => ({
   public: {
-    dashboardUrl: 'http://localhost:3000'
+    dashboardUrl: 'http://localhost:3000',
+    readerUrl: 'http://localhost:3001'
   }
 })) as any
 

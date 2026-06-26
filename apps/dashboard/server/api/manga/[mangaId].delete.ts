@@ -18,9 +18,8 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle(event)
 
-  const now = Date.now()
   const result = await db.update(manga)
-    .set({ deletedAt: new Date(now), updatedAt: now })
+    .set({ deletedAt: new Date() })
     .where(eq(manga.id, mangaId))
     .run()
 

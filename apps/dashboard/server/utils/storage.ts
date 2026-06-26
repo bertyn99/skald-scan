@@ -1,5 +1,5 @@
-import { processedJobs } from '@skald-scan/shared'
-import { eq } from 'drizzle-orm'
+import { pages, processedJobs } from '@skald-scan/shared'
+import { eq, inArray } from 'drizzle-orm'
 import { createError, getQuery, getRouterParam, readBody, type H3Event } from 'h3'
 
 import { type D1Binding, useDrizzle } from './drizzle'
@@ -19,6 +19,7 @@ export type ImportMangaQueueMessage = {
   type: 'import-manga'
   jobId: string
   mangaDexId: string
+  languages?: string[]
 }
 
 export type SyncChaptersQueueMessage = {
@@ -221,29 +222,39 @@ export const readEventParam = (event: H3Event, name: string): string | undefined
 const sanitizePathSegment = (value: string): string => value.trim().replaceAll('/', '-')
 
 /**
- * Returns true if the job has NOT been processed yet (and marks it as 'processing').
- * Returns false if the job was already completed or is currently being processed.
+ * Atomic queue-job claim. Returns true when this caller is allowed to process
+ * the job, false otherwise. Handles three cases in one statement:
  *
- * Used by import-manga.ts, sync-chapters.ts, download-pages.ts (migrate when safe).
+ *   1. Job has never been seen  → INSERT succeeds, claim granted.
+ *   2. Job previously failed     → UPDATE back to 'processing', claim granted
+ *      (so queue retries actually re-run the work instead of no-opping).
+ *   3. Job is 'processing' or 'completed' → ON CONFLICT DO NOTHING, claim denied
+ *      (protects against concurrent redeliveries and double-processing).
+ *
+ * Used by import-manga.ts, sync-chapters.ts, download-pages.ts, extract-zip.ts.
  */
 export const claimQueueJob = async (
   database: D1Binding,
   jobId: string
 ): Promise<boolean> => {
-  const db = useDrizzle(database)
-  const existing = await db.select({ jobId: processedJobs.jobId })
-    .from(processedJobs)
-    .where(eq(processedJobs.jobId, jobId))
-    .get()
-  if (existing) {
-    return false
-  }
+  // processed_jobs schema requires processed_at + status (NOT NULL).
+  // Bind both explicitly; the UPSERT's WHERE clause gates reclaim to failed rows.
+  const now = Date.now()
+  const result = await database
+    .prepare(
+      `INSERT INTO processed_jobs (job_id, processed_at, status, metadata)
+       VALUES (?1, ?2, 'processing', NULL)
+       ON CONFLICT (job_id) DO UPDATE
+         SET processed_at = ?2,
+             status = 'processing',
+             metadata = NULL
+         WHERE processed_jobs.status = 'failed'
+       RETURNING job_id`
+    )
+    .bind(jobId, now)
+    .first<{ job_id: string }>()
 
-  await db.insert(processedJobs).values({
-    jobId,
-    status: 'processing',
-  })
-  return true
+  return result?.job_id === jobId
 }
 
 /**
@@ -282,4 +293,62 @@ export const failQueueJob = async (
       metadata: JSON.stringify({ error: String(error) })
     })
     .where(eq(processedJobs.jobId, jobId))
+}
+
+// Reclaims R2 objects + hard-deletes page rows for chapters being soft-deleted.
+// Cascade FK only fires on chapter HARD delete, so callers that mark chapters
+// Unavailable (status update) must invoke this to avoid orphaned storage.
+// Skips pages whose r2_key is NULL (legacy external-URL pages).
+// Both the SELECT and DELETE chunk against D1's 100-param-per-statement cap
+// (a takedown on a long-running series can soft-delete 100+ chapters at once).
+const R2_DELETE_CONCURRENCY = 5
+const CHAPTER_ID_CHUNK = 90
+
+export const purgeChapterStorage = async (
+  env: { STORAGE: StorageBucketBinding; DB: D1Binding },
+  chapterIds: string[]
+): Promise<void> => {
+  if (chapterIds.length === 0) return
+  const db = useDrizzle(env.DB)
+
+  const keysToDelete: string[] = []
+  for (let i = 0; i < chapterIds.length; i += CHAPTER_ID_CHUNK) {
+    const chunk = chapterIds.slice(i, i + CHAPTER_ID_CHUNK)
+    const rows = await db.select({ r2Key: pages.r2Key })
+      .from(pages)
+      .where(inArray(pages.chapterId, chunk))
+      .all()
+    for (const row of rows) {
+      if (typeof row.r2Key === 'string' && row.r2Key.length > 0) {
+        keysToDelete.push(row.r2Key)
+      }
+    }
+  }
+
+  if (!env.STORAGE.delete) {
+    console.warn(JSON.stringify({
+      level: 'warn',
+      message: 'STORAGE.delete unavailable; R2 objects orphaned',
+      count: keysToDelete.length
+    }))
+  } else {
+    for (let i = 0; i < keysToDelete.length; i += R2_DELETE_CONCURRENCY) {
+      const batch = keysToDelete.slice(i, i + R2_DELETE_CONCURRENCY)
+      await Promise.all(batch.map(key =>
+        env.STORAGE.delete!(key).catch(err => {
+          console.warn(JSON.stringify({
+            level: 'warn',
+            message: 'R2 delete failed',
+            key,
+            error: String(err)
+          }))
+        })
+      ))
+    }
+  }
+
+  for (let i = 0; i < chapterIds.length; i += CHAPTER_ID_CHUNK) {
+    const chunk = chapterIds.slice(i, i + CHAPTER_ID_CHUNK)
+    await db.delete(pages).where(inArray(pages.chapterId, chunk))
+  }
 }

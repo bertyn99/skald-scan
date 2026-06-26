@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle(event)
 
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
   const [
     mangaCount,

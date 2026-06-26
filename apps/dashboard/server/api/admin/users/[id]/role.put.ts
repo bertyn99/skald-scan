@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDrizzle(event)
 
-  await db.update(users).set({ role, updatedAt: Date.now() }).where(eq(users.id, userId)).run()
+  await db.update(users).set({ role }).where(eq(users.id, userId)).run()
 
   const updated = await db.select({
     id: users.id,

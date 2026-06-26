@@ -1,4 +1,9 @@
-import { chapters, manga, mangaDexSync } from '@skald-scan/shared'
+import {
+  DEFAULT_LANGUAGES,
+  manga,
+  mangaDexSync,
+  parseLanguageList
+} from '@skald-scan/shared'
 import type { MangaDexClient, MangaDexManga } from '@skald-scan/shared'
 import { buildMangaDexCoverUrl, MangaStatus, SyncStatus } from '@skald-scan/shared'
 import { eq } from 'drizzle-orm'
@@ -6,10 +11,13 @@ import { eq } from 'drizzle-orm'
 import { dispatchSyncQueueMessage, type SyncQueueRuntimeEnv } from '../utils/sync-queue'
 import { claimQueueJob, completeQueueJob, failQueueJob } from '../utils/storage'
 import { useDrizzle } from '../utils/drizzle'
+import { refreshMangaTranslations } from '../utils/translations'
 
 interface ImportMangaMessage {
   jobId: string
   mangaDexId: string
+  // Optional per-manga language override; falls back to DEFAULT_LANGUAGES.
+  languages?: string[]
   type: 'import-manga'
 }
 
@@ -23,6 +31,7 @@ export async function handleImportManga(
   }
 
   const db = useDrizzle(env.DB)
+  const languages = parseLanguageList(message.languages ?? DEFAULT_LANGUAGES)
 
   try {
     const response = await client.getManga(message.mangaDexId)
@@ -35,11 +44,10 @@ export async function handleImportManga(
     const status = mapMangaDexStatus(mdManga.attributes.status)
     const tags = mdManga.attributes.tags
       ?.map((tag) => tag.attributes.name.en ?? Object.values(tag.attributes.name)[0] ?? '')
-      .filter(Boolean) ?? []
+      .filter((name): name is string => typeof name === 'string' && name.length > 0) ?? []
     const tagsJson = tags.length > 0 ? JSON.stringify(tags) : null
 
-    const author = await resolveRelationshipName(client, mdManga, 'author')
-    const artist = await resolveRelationshipName(client, mdManga, 'artist')
+    const { author, artist } = await resolveRelationshipNames(client, mdManga)
     const coverUrl = resolveCoverUrl(message.mangaDexId, mdManga)
 
     const existingManga = await db.select({ id: manga.id })
@@ -48,7 +56,6 @@ export async function handleImportManga(
       .get()
 
     const mangaId = existingManga?.id ?? crypto.randomUUID()
-    const now = Date.now()
 
     if (!existingManga) {
       await db.insert(manga).values({
@@ -60,9 +67,7 @@ export async function handleImportManga(
         mangaDexId: message.mangaDexId,
         author,
         artist,
-        tags: tagsJson,
-        createdAt: now,
-        updatedAt: now,
+        tags: tagsJson
       })
     } else {
       await db.update(manga)
@@ -73,12 +78,16 @@ export async function handleImportManga(
           status,
           author,
           artist,
-          tags: tagsJson,
-          updatedAt: now,
+          tags: tagsJson
         })
         .where(eq(manga.id, mangaId))
     }
 
+    // Atomic upsert of per-language translations. alt_titles is flattened
+    // to a string array per the FTS schema contract. Stale languages are removed.
+    await refreshMangaTranslations(db, mangaId, mdManga, languages)
+
+    const languagesJson = JSON.stringify(languages)
     const existingSync = await db.select({ id: mangaDexSync.id })
       .from(mangaDexSync)
       .where(eq(mangaDexSync.mangaId, mangaId))
@@ -90,12 +99,15 @@ export async function handleImportManga(
         mangaId,
         syncStatus: SyncStatus.Syncing,
         autoSyncEnabled: true,
-        createdAt: now,
-        updatedAt: now,
+        languages: languagesJson
       })
     } else {
       await db.update(mangaDexSync)
-        .set({ syncStatus: SyncStatus.Syncing, updatedAt: now, lastError: null })
+        .set({
+          syncStatus: SyncStatus.Syncing,
+          lastError: null,
+          languages: languagesJson
+        })
         .where(eq(mangaDexSync.mangaId, mangaId))
     }
 
@@ -104,7 +116,7 @@ export async function handleImportManga(
         jobId: crypto.randomUUID(),
         mangaId,
         mangaDexId: message.mangaDexId,
-        type: 'sync-chapters',
+        type: 'sync-chapters'
       }, client)
     } catch (error) {
       console.error(JSON.stringify({
@@ -112,14 +124,13 @@ export async function handleImportManga(
         message: 'Chapter sync failed after manga import',
         mangaId,
         mangaDexId: message.mangaDexId,
-        error: String(error),
+        error: String(error)
       }))
 
       await db.update(mangaDexSync)
         .set({
           syncStatus: SyncStatus.Error,
-          lastError: String(error),
-          updatedAt: Date.now(),
+          lastError: String(error)
         })
         .where(eq(mangaDexSync.mangaId, mangaId))
     }
@@ -131,21 +142,32 @@ export async function handleImportManga(
   }
 }
 
-async function resolveRelationshipName(
+// Resolve both author and artist names with one fetch per unique author id.
+// Many manga have the same person as both author and artist; without dedup
+// we'd call client.getAuthor() twice for the same id.
+async function resolveRelationshipNames(
   client: MangaDexClient,
-  mdManga: MangaDexManga,
-  type: 'author' | 'artist',
-): Promise<string | null> {
-  const relationship = mdManga.relationships?.find((rel) => rel.type === type)
-  if (!relationship) {
-    return null
-  }
+  mdManga: MangaDexManga
+): Promise<{ author: string | null; artist: string | null }> {
+  const authorRel = mdManga.relationships?.find(rel => rel.type === 'author')
+  const artistRel = mdManga.relationships?.find(rel => rel.type === 'artist')
+  const uniqueIds = new Set<string>()
+  if (authorRel?.id) uniqueIds.add(authorRel.id)
+  if (artistRel?.id) uniqueIds.add(artistRel.id)
 
-  try {
-    const response = await client.getAuthor(relationship.id)
-    return response.data.attributes.name
-  } catch {
-    return null
+  const namesById = new Map<string, string>()
+  await Promise.all([...uniqueIds].map(async id => {
+    try {
+      const response = await client.getAuthor(id)
+      namesById.set(id, response.data.attributes.name)
+    } catch {
+      // leave unresolved
+    }
+  }))
+
+  return {
+    author: authorRel?.id ? (namesById.get(authorRel.id) ?? null) : null,
+    artist: artistRel?.id ? (namesById.get(artistRel.id) ?? null) : null
   }
 }
 

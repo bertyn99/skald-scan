@@ -1,9 +1,9 @@
 import { unzipSync } from 'fflate'
-import { chapters, ChapterStatus, pages, processedJobs } from '@skald-scan/shared'
+import { chapters, ChapterStatus, pages } from '@skald-scan/shared'
 import { eq } from 'drizzle-orm'
 
 import { type D1Binding, useDrizzle } from '../utils/drizzle'
-import { buildPageR2Key, type StorageBucketBinding } from '../utils/storage'
+import { buildPageR2Key, claimQueueJob, completeQueueJob, failQueueJob, type StorageBucketBinding } from '../utils/storage'
 
 export type ExtractZipEnv = {
   DB: D1Binding
@@ -75,19 +75,9 @@ export async function handleExtractZip(
 ): Promise<void> {
   const db = useDrizzle(env.DB)
 
-  const existing = await db.select({ jobId: processedJobs.jobId })
-    .from(processedJobs)
-    .where(eq(processedJobs.jobId, message.jobId))
-    .get()
-
-  if (existing) {
+  if (!(await claimQueueJob(env.DB, message.jobId))) {
     return
   }
-
-  await db.insert(processedJobs).values({
-    jobId: message.jobId,
-    status: 'processing'
-  })
 
   try {
     const zipObject = await env.STORAGE.get(message.tempR2Key)
@@ -109,14 +99,12 @@ export async function handleExtractZip(
       throw new Error(`No image files found in ZIP: ${message.tempR2Key}`)
     }
 
-    const now = Date.now()
     const pageRows: Array<{
       id: string
       chapterId: string
       pageNumber: number
       imageUrl: string
       r2Key: string
-      createdAt: number
     }> = []
 
     for (let index = 0; index < imageEntries.length; index++) {
@@ -136,8 +124,7 @@ export async function handleExtractZip(
         chapterId: message.chapterId,
         pageNumber,
         imageUrl: `/api/manga/${message.mangaId}/chapters/${message.chapterId}/pages/${pageNumber}`,
-        r2Key,
-        createdAt: now
+        r2Key
       })
     }
 
@@ -148,8 +135,7 @@ export async function handleExtractZip(
     await db.update(chapters)
       .set({
         status: ChapterStatus.Available,
-        pagesCount: pageRows.length,
-        updatedAt: now
+        pagesCount: pageRows.length
       })
       .where(eq(chapters.id, message.chapterId))
 
@@ -157,19 +143,9 @@ export async function handleExtractZip(
       await env.STORAGE.delete(message.tempR2Key)
     }
 
-    await db.update(processedJobs)
-      .set({
-        status: 'completed',
-        metadata: JSON.stringify({ pagesCount: pageRows.length })
-      })
-      .where(eq(processedJobs.jobId, message.jobId))
+    await completeQueueJob(env.DB, message.jobId, { pagesCount: pageRows.length })
   } catch (error) {
-    await db.update(processedJobs)
-      .set({
-        status: 'failed',
-        metadata: JSON.stringify({ error: String(error) })
-      })
-      .where(eq(processedJobs.jobId, message.jobId))
+    await failQueueJob(env.DB, message.jobId, error)
 
     console.error(JSON.stringify({
       level: 'error',

@@ -19,6 +19,19 @@
         </UButton>
       </form>
 
+      <div class="flex items-center gap-2 text-xs text-muted">
+        <span>Import languages:</span>
+        <USelectMenu
+          v-model="importLanguages"
+          :items="languageItems"
+          multiple
+          value-key="value"
+          label-key="label"
+          class="w-64"
+        />
+        <span class="text-toned">Defaults to EN/FR/ES/PT when empty.</span>
+      </div>
+
       <UAlert
         v-if="importStatus"
         :color="importStatus.error ? 'error' : importStatus.progress ? 'info' : 'success'"
@@ -118,12 +131,22 @@
 
 <script setup lang="ts">
 import type { FetchError } from 'ofetch'
+import { Language } from '@skald-scan/shared'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 useHead({ title: 'Import — Skald Scan Dashboard' })
 
 const toast = useToast()
+
+type LanguageItem = { label: string; value: string }
+const languageItems: LanguageItem[] = (Object.values(Language) as string[]).map(code => ({
+  label: code.toUpperCase(),
+  value: code
+}))
+// value-key="value" means v-model receives string[] (codes) directly.
+// Empty array means "use DEFAULT_LANGUAGES" on the server side.
+const importLanguages = ref<string[]>([])
 
 interface MangaDexResult {
   id: string
@@ -264,7 +287,10 @@ async function triggerImport(manga: MangaDexResult) {
   try {
     const { jobId } = await $fetch<{ jobId: string }>('/api/mangadex/import', {
       method: 'POST',
-      body: { mangaDexId: manga.id }
+      body: {
+        mangaDexId: manga.id,
+        ...(importLanguages.value.length > 0 ? { languages: importLanguages.value } : {})
+      }
     })
 
     await pollImportStatus(jobId, manga.title)

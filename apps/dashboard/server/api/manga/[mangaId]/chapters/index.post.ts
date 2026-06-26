@@ -30,7 +30,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'chapterNumber is required' })
   }
 
-  const now = Date.now()
   const item = {
     id: crypto.randomUUID(),
     mangaId,
@@ -38,9 +37,7 @@ export default defineEventHandler(async (event) => {
     chapterNumber: body.chapterNumber,
     language: body.language?.trim() || 'en',
     pagesCount: body.pagesCount ?? 0,
-    scanlator: body.scanlator?.trim() || null,
-    createdAt: now,
-    updatedAt: now
+    scanlator: body.scanlator?.trim() || null
   }
 
   const db = useDrizzle(event)
@@ -52,9 +49,7 @@ export default defineEventHandler(async (event) => {
     language: item.language,
     pagesCount: item.pagesCount,
     status: 'available',
-    scanlator: item.scanlator,
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt
+    scanlator: item.scanlator
   }).run()
 
   return {

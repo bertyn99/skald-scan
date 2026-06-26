@@ -165,7 +165,7 @@ describe('GET /api/reading-progress/:mangaId', () => {
       chapterId: 'c1',
       lastPageRead: 5,
       read: false,
-      lastReadAt: 1000
+      lastReadAt: new Date(1000)
     })
     expect(result.progress[1]).toMatchObject({
       id: 'p2',

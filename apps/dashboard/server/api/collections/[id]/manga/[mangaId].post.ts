@@ -30,8 +30,7 @@ export default defineEventHandler(async (event) => {
 
   await db.insert(collectionManga).values({
     collectionId,
-    mangaId,
-    addedAt: Date.now()
+    mangaId
   }).onConflictDoNothing()
 
   return { added: true }

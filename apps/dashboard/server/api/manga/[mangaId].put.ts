@@ -28,7 +28,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readEventBody<UpdateMangaBody>(event)
-  const now = Date.now()
 
   const changes = {
     title: body.title?.trim(),
@@ -37,8 +36,7 @@ export default defineEventHandler(async (event) => {
     author: normalizeNullableText(body.author),
     artist: normalizeNullableText(body.artist),
     tags: normalizeNullableText(body.tags),
-    status: body.status?.trim(),
-    updatedAt: now
+    status: body.status?.trim()
   }
 
   const db = useDrizzle(event)

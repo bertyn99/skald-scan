@@ -57,7 +57,8 @@ describe('handleExtractZip', () => {
 
   it('skips already-processed job', async () => {
     const db = createMockD1([
-      { allResult: { results: [{ jobId: 'job-done' }] } }
+      // atomic claim returns null → already claimed
+      { firstResult: null }
     ])
     const storage = createMockR2()
 
@@ -77,7 +78,10 @@ describe('handleExtractZip', () => {
       'page_003.webp': new Uint8Array([7, 8, 9])
     })
 
-    const db = createMockD1([{ allResult: { results: [] } }])
+    const db = createMockD1([
+      { firstResult: { job_id: 'job-1' } }, // atomic claim succeeds
+      { allResult: { results: [] } } // completeQueueJob update (no-op mock)
+    ])
     const storage = createMockR2({
       'temp/job-1.zip': createMockR2Object([0, 1, 2])
     })
@@ -109,9 +113,8 @@ describe('handleExtractZip', () => {
   it('marks job failed and rethrows on R2 error', async () => {
     const capturedBinds: unknown[][] = []
     const db = createMockD1([
-      { allResult: { results: [] } },
-      {},
-      { onBind: (args) => capturedBinds.push(args) }
+      { firstResult: { job_id: 'job-fail' } }, // atomic claim succeeds
+      { onBind: (args) => capturedBinds.push(args) } // failQueueJob update
     ])
     const storage = createMockR2()
 
@@ -132,7 +135,10 @@ describe('handleExtractZip', () => {
       '001.png': new Uint8Array([1])
     })
 
-    const db = createMockD1([{ allResult: { results: [] } }])
+    const db = createMockD1([
+      { firstResult: { job_id: 'job-del' } },
+      { allResult: { results: [] } } // completeQueueJob
+    ])
     const storage = createMockR2({
       'temp/job-del.zip': createMockR2Object([0])
     })
@@ -153,9 +159,8 @@ describe('handleExtractZip', () => {
     })
 
     const db = createMockD1([
-      { allResult: { results: [] } },
-      {},
-      {}
+      { firstResult: { job_id: 'job-empty' } }, // claim
+      { onBind: () => {} } // failQueueJob
     ])
     const storage = createMockR2({
       'temp/empty.zip': createMockR2Object([0])
@@ -178,7 +183,10 @@ describe('handleExtractZip', () => {
       'page_b.webp': new Uint8Array([2])
     })
 
-    const db = createMockD1([{ allResult: { results: [] } }])
+    const db = createMockD1([
+      { firstResult: { job_id: 'job-sort' } },
+      { allResult: { results: [] } } // completeQueueJob
+    ])
     const storage = createMockR2({
       'temp/sort.zip': createMockR2Object([0])
     })
@@ -212,11 +220,10 @@ describe('handleDownloadPages', () => {
     }) as typeof fetch
 
     const db = createMockD1([
-      { allResult: { results: [] } },
-      {},
-      {},
-      {},
-      {}
+      { firstResult: { job_id: 'job-dl-ok' } }, // atomic claim
+      {}, // chapters status update (Processing)
+      {}, // chapters status update (Available)
+      { allResult: { results: [] } } // completeQueueJob
     ])
     const storage = createMockR2()
 
@@ -250,10 +257,9 @@ describe('handleDownloadPages', () => {
   it('marks job failed and rethrows on MangaDex API error', async () => {
     const capturedBinds: unknown[][] = []
     const db = createMockD1([
-      { allResult: { results: [] } },
-      {},
-      {},
-      { onBind: (args) => capturedBinds.push(args) }
+      { firstResult: { job_id: 'job-dl-fail' } }, // atomic claim
+      {}, // chapters status update (Processing)
+      { onBind: (args) => capturedBinds.push(args) } // failQueueJob
     ])
 
     const mockClient = createMockMangaDexClient({
@@ -288,64 +294,74 @@ describe('handleSyncChapters', () => {
   })
 
   it('marks removed chapters as unavailable', async () => {
-    const capturedBinds: unknown[][] = []
-    const db = createMockD1([
-      { allResult: { results: [] } },
-      {},
-      {
-        allResult: {
-          results: [
-            { mangaDexChapterId: 'ch1' },
-            { mangaDexChapterId: 'ch2' },
-            { mangaDexChapterId: 'ch3' }
-          ]
-        }
-      },
-      {
-        allResult: {
-          results: [
-            { id: 'chap-1', mangaDexChapterId: 'ch1' },
-            { id: 'chap-2', mangaDexChapterId: 'ch2' },
-            { id: 'chap-3', mangaDexChapterId: 'ch3' }
-          ]
-        }
-      },
-      { onBind: (args) => capturedBinds.push(args) },
-      {},
-      {}
-    ])
+    // Capture EVERY bind across all prepared statements, regardless of order.
+    const allBinds: unknown[][] = []
+    // Drizzle's typed select with fields uses stmt.bind(...).raw() and reads
+    // rows as array-of-arrays (column order matches the select clause).
+    // select count(*) uses stmt.bind(...).all() reading .results.
+    const existingChaptersRaw: unknown[][] = [
+      ['chap-1', 'ch1'],
+      ['chap-2', 'ch2'],
+      ['chap-3', 'ch3']
+    ]
+    const db = createMockD1([])
+    let claimConsumed = false
+
+    function rawForSql(sqlText: string): unknown[][] {
+      const lower = sqlText.toLowerCase()
+      if (lower.includes('from "chapters"')) return existingChaptersRaw
+      return []
+    }
+    function allForSql(sqlText: string): { results: unknown[] } | null {
+      const lower = sqlText.toLowerCase()
+      if (lower.includes('count(*)') && lower.includes('manga_translations')) {
+        return { results: [{ c: 4 }] } // >= configuredLanguages.length, no refresh
+      }
+      if (lower.includes('from "pages"')) return { results: [] }
+      return null
+    }
+
+    vi.mocked(db.prepare).mockImplementation((sqlText?: string) => {
+      const sql = String(sqlText ?? '')
+      return {
+        bind: (...args: unknown[]) => {
+          allBinds.push(args)
+          const isClaim = sql.includes('INSERT INTO processed_jobs')
+          const claimResult = isClaim && !claimConsumed ? { job_id: args[0] } : null
+          if (isClaim && claimResult) claimConsumed = true
+          const allMatched = allForSql(sql)
+          const rawMatched = rawForSql(sql)
+          return {
+            all: vi.fn().mockResolvedValue(allMatched ?? { results: [] }),
+            first: vi.fn().mockResolvedValue(claimResult),
+            run: vi.fn().mockResolvedValue({ success: true }),
+            raw: vi.fn().mockResolvedValue(rawMatched)
+          }
+        },
+        all: vi.fn().mockResolvedValue({ results: [] }),
+        first: vi.fn().mockResolvedValue(null),
+        run: vi.fn().mockResolvedValue({ success: true }),
+        raw: vi.fn().mockResolvedValue(rawForSql(sql))
+      } as ReturnType<D1Database['prepare']>
+    })
 
     const mockClient = createMockMangaDexClient({
-      getMangaChapters: vi.fn().mockResolvedValue({
-        result: 'ok',
-        response: 'collection',
+      getAllMangaChapters: vi.fn().mockResolvedValue({
+        total: 2,
         data: [
           {
             id: 'ch1',
             type: 'chapter',
-            attributes: {
-              chapter: '1',
-              title: 'Ch 1',
-              translatedLanguage: 'en',
-              pages: 10
-            },
+            attributes: { chapter: '1', title: 'Ch 1', translatedLanguage: 'en', pages: 10 },
             relationships: []
           },
           {
             id: 'ch3',
             type: 'chapter',
-            attributes: {
-              chapter: '3',
-              title: 'Ch 3',
-              translatedLanguage: 'en',
-              pages: 8
-            },
+            attributes: { chapter: '3', title: 'Ch 3', translatedLanguage: 'en', pages: 8 },
             relationships: []
           }
-        ],
-        limit: 100,
-        offset: 0,
-        total: 2
+        ]
       })
     })
 
@@ -357,13 +373,15 @@ describe('handleSyncChapters', () => {
       mockClient
     )
 
-    expect(mockClient.getMangaChapters).toHaveBeenCalledWith('md-1', { language: 'en' })
+    expect(mockClient.getAllMangaChapters).toHaveBeenCalledWith(
+      'md-1',
+      expect.objectContaining({ language: expect.any(Array) })
+    )
 
-    expect(capturedBinds.length).toBe(1)
-    const removedArgs = capturedBinds[0]
-    expect(removedArgs).toContain('chap-2')
-    expect(removedArgs).toContain(ChapterStatus.Unavailable)
-    expect(removedArgs).not.toContain('chap-1')
-    expect(removedArgs).not.toContain('chap-3')
+    const removedUpdate = allBinds.find(args => args.includes(ChapterStatus.Unavailable))
+    expect(removedUpdate).toBeDefined()
+    expect(removedUpdate).toContain('chap-2')
+    expect(removedUpdate).not.toContain('chap-1')
+    expect(removedUpdate).not.toContain('chap-3')
   })
 })

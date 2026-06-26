@@ -17,7 +17,7 @@ export async function handleScheduledSync(
 ): Promise<{ synced: number; queued: number }> {
   const db = useDrizzle(env.DB)
 
-  const cutoff = Date.now() - SYNC_INTERVAL_MS
+  const cutoff = new Date(Date.now() - SYNC_INTERVAL_MS)
 
   const dueRaw = await db.select({
     id: mangaDexSync.id,
@@ -48,7 +48,7 @@ export async function handleScheduledSync(
 
   for (const record of due) {
     await db.update(mangaDexSync)
-      .set({ syncStatus: SyncStatus.Syncing, updatedAt: Date.now() })
+      .set({ syncStatus: SyncStatus.Syncing })
       .where(eq(mangaDexSync.id, record.id))
 
     await env.SYNC_QUEUE.send({

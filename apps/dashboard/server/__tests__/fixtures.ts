@@ -1,6 +1,10 @@
 import { vi } from 'vitest'
 import type { H3Event } from 'h3'
 
+import { DEFAULT_SEED_ADMIN } from '../seed/credentials'
+
+export const SEED_ADMIN_CREDENTIALS = DEFAULT_SEED_ADMIN
+
 // ─── Types ──────────────────────────────────────────────
 
 type UserRole = 'admin' | 'reader'

@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   const jobId = crypto.randomUUID()
 
   await db.update(mangaDexSync)
-    .set({ syncStatus: SyncStatus.Syncing, updatedAt: Date.now(), lastError: null })
+    .set({ syncStatus: SyncStatus.Syncing, lastError: null })
     .where(eq(mangaDexSync.mangaId, mangaId))
 
   await dispatchSyncQueueMessage(

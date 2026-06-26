@@ -9,7 +9,6 @@ import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { bearer } from 'better-auth/plugins'
 import { memoryAdapter } from 'better-auth/adapters/memory'
-import { count, eq } from 'drizzle-orm'
 import type { H3Event } from 'h3'
 
 import { type D1Binding, useDrizzle } from './drizzle'
@@ -28,10 +27,10 @@ const createDatabaseAdapter = (env?: AuthCloudflareEnv) => {
     return drizzleAdapter(db, {
       provider: 'sqlite',
       schema: {
-        user: sharedUsers,
-        session: sharedSessions,
-        account: sharedAccounts,
-        verification: sharedVerifications
+        users: sharedUsers,
+        sessions: sharedSessions,
+        accounts: sharedAccounts,
+        verifications: sharedVerifications
       }
     })
   }
@@ -64,40 +63,36 @@ export const createAuth = (env?: AuthCloudflareEnv) => {
     plugins: [bearer()],
     user: {
       modelName: 'users',
-      fields: {
-        image: 'image_url'
-      },
       additionalFields: {
         role: {
           type: [UserRole.Admin, UserRole.Reader],
           required: false,
           defaultValue: UserRole.Reader,
           input: false
+        },
+        preferredLanguage: {
+          type: 'string',
+          required: false,
+          // No defaultValue: leaving the column NULL is what we want for
+          // "user hasn't picked yet" — `null` would work but Better Auth's
+          // string-typed additionalField validates defaultValue against the
+          // string type, so omitting it avoids a runtime type mismatch.
+          // input: false — the field is updated only via our
+          // PUT /api/users/me/preferences endpoint (which validates against
+          // the Language enum). Allowing signUp to set it would let a
+          // malicious client store arbitrary strings.
+          input: false
         }
       }
     },
     session: {
-      modelName: 'sessions',
-      fields: {
-        ipAddress: 'ip_address',
-        userAgent: 'user_agent'
-      }
+      modelName: 'sessions'
     },
-    databaseHooks: {
-      user: {
-        create: {
-          after: async (user) => {
-            if (!env?.DB) return
-            const db = useDrizzle(env.DB)
-            const userCount = await db.select({ count: count() }).from(sharedUsers).get()
-            if ((userCount?.count ?? 0) <= 1 && user.role !== UserRole.Admin) {
-              await db.update(sharedUsers)
-                .set({ role: UserRole.Admin, updatedAt: Date.now() })
-                .where(eq(sharedUsers.id, user.id))
-            }
-          }
-        }
-      }
+    account: {
+      modelName: 'accounts'
+    },
+    verification: {
+      modelName: 'verifications'
     }
   })
 }

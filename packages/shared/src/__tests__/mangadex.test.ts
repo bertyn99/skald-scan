@@ -199,13 +199,15 @@ describe('MangaDexClient', () => {
       ),
     )
 
-    const client = new MangaDexClient({ fetch: fetchMock })
+    // maxRetries: 0 so the 500 throws immediately without retrying — the
+    // retry path is covered by the dedicated 429 retry test below.
+    const client = new MangaDexClient({ fetch: fetchMock, maxRetries: 0 })
 
     await expect(client.getManga('broken-id')).rejects.toEqual(
       expect.objectContaining({
         name: 'MangaDexClientError',
         status: 500,
-        message: expect.stringContaining('Internal Server Error'),
+        message: expect.stringContaining('server error 500 persisted'),
       }),
     )
   })

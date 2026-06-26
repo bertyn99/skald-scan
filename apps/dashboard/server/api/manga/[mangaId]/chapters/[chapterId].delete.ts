@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const db = useDrizzle(event)
 
   await db.update(chapters)
-    .set({ status: ChapterStatus.Unavailable, updatedAt: Date.now() })
+    .set({ status: ChapterStatus.Unavailable })
     .where(and(eq(chapters.id, chapterId), eq(chapters.mangaId, mangaId)))
 
   return { deleted: true }
